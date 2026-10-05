@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>AI</title>
+  <link rel="stylesheet" href="shared.css" />
+  <style>
+    html,body{height:100%;overflow:hidden}
+    .app{display:flex;flex-direction:column;height:100vh;background:radial-gradient(50% 45% at 25% 20%, #0c2333, transparent 62%), radial-gradient(45% 45% at 80% 80%, #0a2b26, transparent 60%), #05090c}
+    .head{display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid var(--line);background:rgba(255,255,255,.02)}
+    .head .orb{width:36px;height:36px;border-radius:12px;background:var(--acc-dim);border:1px solid var(--acc-line);display:grid;place-items:center;color:var(--acc)}
+    .head .orb svg{width:19px;height:19px}
+    .head b{font-size:14px;font-weight:900}
+    .head span{display:block;font-size:10.5px;color:var(--dim);font-weight:700}
+    .head .vbtn{margin-left:auto}
+    .chat{flex:1;overflow-y:auto;padding:20px 16px;display:flex;flex-direction:column;gap:14px;min-height:0}
+    .msg{max-width:min(620px,86%);padding:12px 15px;border-radius:15px;font-size:13.5px;line-height:1.6;white-space:pre-wrap;word-wrap:break-word}
+    .msg.user{align-self:flex-end;background:var(--acc);color:#06130d;border-bottom-right-radius:5px;font-weight:600}
+    .msg.bot{align-self:flex-start;background:var(--glass);border:1px solid var(--line);border-bottom-left-radius:5px}
+    .msg.bot.err{border-color:rgba(255,107,98,.4)}
+    .msg .tag{display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:#b99cff;background:rgba(185,156,255,.12);border:1px solid rgba(185,156,255,.35);padding:2px 7px;border-radius:6px;margin-bottom:6px}
+    .chips{display:flex;gap:8px;padding:0 16px 10px;flex-wrap:wrap}
+    .comp{padding:0 16px 16px}
+    .compbox{display:flex;gap:8px;align-items:center;background:var(--glass);border:1px solid var(--line);border-radius:15px;padding:8px}
+    .compbox input{flex:1;background:none;border:0;outline:0;color:var(--text);font-size:14px;padding:0 8px}
+    .compbox input::placeholder{color:var(--dim)}
+    .typing{align-self:flex-start;display:flex;gap:4px;padding:14px 16px;background:var(--glass);border:1px solid var(--line);border-radius:15px}
+    .typing i{width:6px;height:6px;border-radius:50%;background:var(--acc);animation:tp 1s infinite}
+    .typing i:nth-child(2){animation-delay:.15s}
+    .typing i:nth-child(3){animation-delay:.3s}
+    @keyframes tp{40%{transform:translateY(-5px);opacity:.5}}
+    .setup{max-width:560px;margin:0 auto;text-align:left;font-size:12.5px;line-height:1.7;color:var(--muted);background:var(--glass);border:1px solid var(--line);border-radius:14px;padding:16px}
+    .setup code{background:rgba(0,0,0,.4);padding:1px 6px;border-radius:6px;font-family:ui-monospace,monospace;font-size:11.5px;color:var(--acc)}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="head">
+      <div class="orb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2l1.9 5.6a2 2 0 0 0 1.24 1.24L20.7 10.7 15.1 12.6a2 2 0 0 0-1.24 1.24L12 19.4l-1.9-5.6a2 2 0 0 0-1.24-1.24L3.3 10.7l5.6-1.9A2 2 0 0 0 10.1 7.6L12 2z"/></svg></div>
+      <div><b>lunora AI</b><span>powered by GLM · runs on the lunora server</span></div>
+      <button class="vbtn sm" id="clear">clear</button>
+    </div>
+    <div class="chat" id="chat"></div>
+    <div class="chips" id="chips"></div>
+    <div class="comp">
+      <div class="compbox">
+        <input id="input" placeholder="ask me anything..." autocomplete="off" />
+        <button class="vbtn acc" id="send">send</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="shared.js"></script>
+  <script src="api.js"></script>
+  <script>
+    (() => {
+      'use strict';
+      const $ = (s) => document.querySelector(s);
+      const V = window.Velora;
+      const API = window.LunoraAPI;
+
+      const SUGGESTIONS = ['what is lunora?', 'explain photosynthesis like i am 12', 'what is 18% of 240?', 'how do i write a summary?', 'tell me a joke'];
+
+      const chat = $('#chat');
+      let history = V.store.get('ai.history', []);
+      let busy = false;
+
+      function addMsg(role, text, cls = '', tag = '') {
+        const d = document.createElement('div');
+        d.className = 'msg ' + role + ' ' + cls;
+        if (tag) {
+          const tg = document.createElement('span');
+          tg.className = 'tag';
+          tg.textContent = tag;
+          d.appendChild(tg);
+          d.appendChild(document.createElement('br'));
+        }
+        const parts = String(text).split('**');
+        parts.forEach((part, i) => {
+          if (!part) return;
+          if (i % 2 === 1) { const b = document.createElement('b'); b.textContent = part; d.appendChild(b); }
+          else d.appendChild(document.createTextNode(part));
+        });
+        chat.appendChild(d);
+        chat.scrollTop = chat.scrollHeight;
+        return d;
+      }
+
+      function renderHistory() {
+        chat.textContent = '';
+        if (!history.length) {
+          addMsg('bot', "hey! i'm lunora AI 🤖 a real GLM model running on the lunora server.\nask me anything — math, homework, science, or about lunora itself.", '', '🤖 AI · GLM');
+        }
+        for (const m of history.slice(-40)) addMsg(m.role, m.text, '', m.role === 'assistant' ? '🤖 AI · GLM' : '');
+      }
+
+      for (const s of SUGGESTIONS) {
+        const b = document.createElement('button');
+        b.className = 'vchip'; b.textContent = s;
+        b.addEventListener('click', () => ask(s));
+        $('#chips').appendChild(b);
+      }
+
+      async function ask(q) {
+        q = (q || '').trim();
+        if (!q || busy) return;
+        busy = true;
+        addMsg('user', q);
+        history.push({ role: 'user', text: q });
+        const typing = document.createElement('div');
+        typing.className = 'typing';
+        typing.innerHTML = '<i></i><i></i><i></i>';
+        chat.appendChild(typing);
+        chat.scrollTop = chat.scrollHeight;
+
+        let reply = null, failed = false;
+        try {
+          const r = await API.api('/api/ai/chat', {
+            body: { messages: history.slice(-12).map((m) => ({ role: m.role, content: m.text })) },
+          });
+          reply = r.text;
+        } catch (e) {
+          failed = true;
+          if (e.data && e.data.code === 'AI_NOT_CONFIGURED') {
+            typing.remove();
+            const d = document.createElement('div');
+            d.className = 'setup';
+            d.innerHTML = `
+              <b style="color:var(--acc)">🤖 one-time server setup needed</b><br><br>
+              lunora AI runs on <b>GLM (Z.ai)</b> through the server — no keys ever live in the browser. To turn it on:<br><br>
+              1. grab a free API key from <b>z.ai</b> (open platform)<br>
+              2. create a file named <code>.z-ai-config</code> next to <code>server.js</code>:<br>
+              &nbsp;&nbsp;<code>{ "baseUrl": "https://api.z.ai/api/paas/v4", "apiKey": "YOUR_KEY" }</code><br>
+              &nbsp;&nbsp;(or copy <code>.z-ai-config.example</code> and paste your key)<br>
+              3. restart <code>node server.js</code><br><br>
+              the same key powers the 🤖 AI moderation in the global channels.`;
+            chat.appendChild(d);
+            chat.scrollTop = chat.scrollHeight;
+            history.push({ role: 'assistant', text: '[AI setup needed — see the steps above]' });
+            V.store.set('ai.history', history.slice(-60));
+            busy = false;
+            return;
+          }
+          reply = e.message;
+        }
+
+        typing.remove();
+        addMsg('bot', reply || '…', failed ? 'err' : '', '🤖 AI · GLM');
+        history.push({ role: 'assistant', text: reply || '' });
+        history = history.slice(-60);
+        V.store.set('ai.history', history);
+        busy = false;
+      }
+
+      function submit() { const v = $('#input').value; $('#input').value = ''; ask(v); }
+      $('#send').addEventListener('click', submit);
+      $('#input').addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); });
+      $('#clear').addEventListener('click', () => { history = []; V.store.set('ai.history', []); renderHistory(); });
+
+      renderHistory();
+    })();
+  </script>
+</body>
+</html>

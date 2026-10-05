@@ -1,0 +1,443 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Browser</title>
+  <link rel="stylesheet" href="shared.css" />
+  <style>
+    html,body{height:100%;overflow:hidden}
+    .app{display:flex;flex-direction:column;height:100vh;background:#070a0b}
+
+    /* ---------- tab strip ---------- */
+    .tabstrip{
+      display:flex;align-items:flex-end;gap:4px;padding:8px 10px 0;
+      background:rgba(255,255,255,.025);border-bottom:1px solid var(--line);flex:0 0 auto;
+      overflow-x:auto;scrollbar-width:none;
+    }
+    .tabstrip::-webkit-scrollbar{display:none}
+    .tab{
+      display:flex;align-items:center;gap:8px;max-width:210px;min-width:120px;
+      height:34px;padding:0 9px 0 12px;border-radius:11px 11px 0 0;cursor:pointer;
+      color:var(--muted);font-size:12px;font-weight:700;transition:.14s;flex:0 0 auto;
+      border:1px solid transparent;border-bottom:0;position:relative;
+    }
+    .tab .tfav{width:14px;height:14px;border-radius:4px;background:var(--solid2);flex:0 0 auto;display:grid;place-items:center;font-size:8px;font-weight:900;color:var(--acc)}
+    .tab .tfav img{width:14px;height:14px;border-radius:4px;object-fit:cover}
+    .tab .tt{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .tab .tx{width:18px;height:18px;border-radius:6px;display:grid;place-items:center;font-size:11px;opacity:0;transition:.12s;flex:0 0 auto}
+    .tab:hover .tx{opacity:.7}
+    .tab .tx:hover{background:rgba(255,255,255,.14);opacity:1}
+    .tab.on{background:var(--solid);border-color:var(--line);color:var(--text)}
+    .tab:not(.on):hover{background:rgba(255,255,255,.04);color:var(--text)}
+    .newtab{
+      width:32px;height:32px;margin:0 2px 2px;border-radius:10px;border:1px solid transparent;background:transparent;
+      color:var(--muted);cursor:pointer;display:grid;place-items:center;font-size:16px;flex:0 0 auto;transition:.14s;
+    }
+    .newtab:hover{background:rgba(255,255,255,.07);color:var(--text)}
+
+    /* ---------- toolbar ---------- */
+    .toolbar{display:flex;align-items:center;gap:7px;padding:8px 10px;background:var(--solid);border-bottom:1px solid var(--line);flex:0 0 auto}
+    .rbtn{
+      width:34px;height:34px;border-radius:50%;border:1px solid transparent;background:transparent;color:var(--muted);
+      cursor:pointer;display:grid;place-items:center;transition:.13s;flex:0 0 auto;
+    }
+    .rbtn svg{width:16px;height:16px}
+    .rbtn:hover{background:rgba(255,255,255,.07);color:var(--text)}
+    .rbtn:disabled{opacity:.3;cursor:default}
+    .rbtn:disabled:hover{background:transparent;color:var(--muted)}
+    .omni{flex:1;display:flex;align-items:center;gap:9px;height:36px;padding:0 5px 0 13px;border-radius:99px;background:rgba(0,0,0,.4);border:1px solid var(--line);transition:.15s;min-width:120px}
+    .omni:focus-within{border-color:var(--acc-line);box-shadow:0 0 0 3px var(--acc-dim)}
+    .omni .lock{width:13px;height:13px;color:var(--dim);flex:0 0 auto}
+    .omni input{flex:1;background:none;border:0;outline:0;color:var(--text);font-size:13px;min-width:40px}
+    .omni input::placeholder{color:var(--dim)}
+    .engchip{
+      display:flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:99px;cursor:pointer;
+      border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--muted);font-size:10.5px;font-weight:800;
+      text-transform:lowercase;flex:0 0 auto;transition:.13s;
+    }
+    .engchip:hover{border-color:var(--line2);color:var(--text)}
+    .engchip .st{width:7px;height:7px;border-radius:50%;background:var(--dim)}
+    .engchip .st.ok{background:var(--acc)}
+    .engchip .st.bad{background:var(--danger)}
+
+    /* ---------- viewport ---------- */
+    .viewport{flex:1;position:relative;background:#0a0d0e;min-height:0}
+    .viewport iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:#0a0d0e}
+    .viewport iframe[hidden]{display:none}
+
+    /* ---------- new tab page ---------- */
+    .ntp{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(60% 55% at 30% 30%, #0c2333, transparent 62%),radial-gradient(55% 55% at 75% 70%, #0a2b26, transparent 60%),#05090c;z-index:5}
+    .ntp.hidden{display:none}
+    .ntp h1{font-size:clamp(30px,5vw,44px);margin:0 0 30px}
+    .ntp .srow{display:flex;width:min(560px,86%);position:relative}
+    .ntp input{flex:1;height:48px;border-radius:14px;outline:0;border:1px solid var(--line);background:rgba(10,14,15,.55);color:var(--text);padding:0 88px 0 46px;font-size:14px}
+    .ntp input:focus{border-color:var(--acc-line);box-shadow:0 0 0 4px var(--acc-dim)}
+    .ntp .sicon{position:absolute;left:15px;top:15px;width:18px;height:18px;color:var(--dim)}
+    .ntp .ddg{position:absolute;right:8px;top:7px;height:34px;padding:0 12px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.05);color:var(--acc);font-weight:800;font-size:12px;cursor:pointer}
+    .ntp .ddg:hover{background:var(--acc);color:#06130d}
+    .ntp .qlinks{display:flex;gap:clamp(12px,2.6vw,26px);margin-top:38px;flex-wrap:wrap;justify-content:center}
+    .ntp .ql{display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--muted);background:none;border:0;cursor:pointer;padding:6px;border-radius:10px;transition:.15s}
+    .ntp .ql svg{width:22px;height:22px}
+    .ntp .ql span{font-size:11px;font-weight:700}
+    .ntp .ql:hover{color:var(--text);transform:translateY(-2px)}
+    .ntp .est{margin-top:34px;color:var(--dim);font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase}
+    .ntp .est b{color:var(--acc)}
+
+    /* ---------- loading bar ---------- */
+    .loadbar{position:absolute;top:0;left:0;height:2.5px;width:0;background:var(--acc);z-index:20;transition:width .25s ease, opacity .3s;opacity:0;border-radius:99px}
+    .loadbar.busy{opacity:1;animation:lbar 1.1s ease forwards}
+    @keyframes lbar{0%{width:4%}55%{width:62%}100%{width:96%}}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="tabstrip" id="tabs"></div>
+    <div class="toolbar">
+      <button class="rbtn" id="b-back" title="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M15 5l-7 7 7 7"/></svg></button>
+      <button class="rbtn" id="b-fwd" title="Forward"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M9 5l7 7-7 7"/></svg></button>
+      <button class="rbtn" id="b-rel" title="Reload"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg></button>
+      <div class="omni">
+        <svg class="lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="10.5" width="16" height="10" rx="2.5"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/></svg>
+        <input id="omni" placeholder="search or enter address" autocomplete="off" spellcheck="false" />
+        <div class="engchip" id="engchip" title="Switch engine"><i class="st"></i><span id="engname">uv</span></div>
+      </div>
+      <button class="rbtn" id="b-home" title="Home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg></button>
+      <button class="rbtn" id="b-pop" title="Open in a real tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M14 4h6v6"/><path d="M20 4 11 13"/><path d="M18 13v6a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h6"/></svg></button>
+      <button class="rbtn" id="b-full" title="Fullscreen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg></button>
+    </div>
+    <div class="viewport" id="viewport">
+      <div class="loadbar" id="loadbar"></div>
+      <div class="ntp" id="ntp">
+        <h1 class="wordmark sm">lunora</h1>
+        <div class="srow">
+          <svg class="sicon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <input id="ntp-search" placeholder="search or enter address..." autocomplete="off" spellcheck="false" />
+          <button class="ddg" id="ntp-ddg">ddg</button>
+        </div>
+        <div class="qlinks" id="ntp-links"></div>
+        <div class="est" id="ntp-est">engine <b>—</b></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="shared.js"></script>
+  <script>
+    (() => {
+      'use strict';
+      const $ = (s, r = document) => r.querySelector(s);
+      const V = window.Velora;
+
+      /* ================= engine bootstrapping ================= */
+      const loadScript = (src) => new Promise((res, rej) => {
+        const s = document.createElement('script');
+        s.src = src; s.onload = res; s.onerror = () => rej(new Error('failed to load ' + src));
+        document.head.appendChild(s);
+      });
+
+      const wispUrl = () => V.getSettings().engine.wisp
+        || `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/wisp/`;
+      const bareUrl = () => V.getSettings().engine.bare || '/bare/';
+
+      const state = { engine: null, uv: null, sj: null, busy: false };
+
+      async function initUV() {
+        if (state.uv) return state.uv;
+        await loadScript('/vendor/bare-mux/index.js');
+        if (!window.BareMux) throw new Error('bare-mux failed to load');
+        const Conn = window.BareMux.BareMuxConnection || window.BareMux.default;
+        const conn = new Conn('/vendor/bare-mux/worker.js');
+        await conn.setTransport('/vendor/epoxy/uv-adapter2.mjs', [{ wisp: wispUrl() }]);
+        await loadScript('/uv/uv.bundle.js');
+        await loadScript('/uv/uv.config.js');
+        await navigator.serviceWorker.register('/uv/sw.js', { scope: '/' });
+        await navigator.serviceWorker.ready;
+        state.uv = window.__uv$config;
+        return state.uv;
+      }
+
+      async function initScramjet() {
+        if (state.sj) return state.sj;
+        await loadScript('/scramjet/scramjet.js');            // sets $scramjet
+        await loadScript('/vendor/epoxy/index.js');           // sets EpoxyTransport
+        await loadScript('/controller/controller.api.js');    // sets $scramjetController
+        const reg = await navigator.serviceWorker.register('/controller/sw.js', { scope: '/~/sj/' });
+        // the controller handshake must happen with an *activated* worker —
+        // messages posted to an installing worker are silently dropped
+        const sw = reg.active || await new Promise((resolve) => {
+          const wk = reg.installing || reg.waiting;
+          if (!wk) return resolve(null);
+          wk.addEventListener('statechange', () => { if (wk.state === 'activated') resolve(wk); });
+        });
+        const EpoxyCls = window.EpoxyTransport?.default || window.EpoxyTransport?.EpoxyClient || window.EpoxyTransport;
+        const transport = new EpoxyCls({ wisp: wispUrl() });
+        const SJC = window.$scramjetController;
+        const ctrl = new SJC.Controller({
+          serviceworker: sw,
+          transport,
+          config: {
+            prefix: '/~/sj/',
+            scramjetPath: '/scramjet/scramjet.js',
+            injectPath: '/controller/controller.inject.js',
+            wasmPath: '/scramjet/scramjet.wasm',
+            virtualWasmPath: 'scramjet.wasm.js',
+          },
+        });
+        await ctrl.wait();
+        state.sj = ctrl;
+        return ctrl;
+      }
+
+      async function ensureEngine() {
+        const sel = V.getSettings().engine.selected || 'scramjet';
+        if (sel === 'direct') { state.engine = 'direct'; updateChip(); return 'direct'; }
+        if (state.engine === sel && (sel === 'uv' ? state.uv : state.sj)) return sel;
+        state.busy = true;
+        updateChip();
+        try {
+          if (sel === 'uv') { await initUV(); state.engine = 'uv'; }
+          else { await initScramjet(); state.engine = 'scramjet'; }
+        } catch (e) {
+          console.error('engine init failed:', e);
+          V.toast(sel + ' failed to start — check that server.js is running');
+          state.engine = null;
+          throw e;
+        } finally {
+          state.busy = false;
+          updateChip();
+        }
+        return state.engine;
+      }
+
+      function encodeUrl(url) {
+        if (state.engine === 'uv' && window.__uv$config) {
+          return __uv$config.prefix + __uv$config.encodeUrl(url);
+        }
+        return url;
+      }
+
+      /* ================= tabs ================= */
+      const tabsEl = $('#tabs'), viewport = $('#viewport'), ntp = $('#ntp'), omni = $('#omni'), loadbar = $('#loadbar');
+      let tabs = [], activeId = null, tabSeq = 0;
+
+      function newTab(url) {
+        const id = 't' + (++tabSeq);
+        const frame = document.createElement('iframe');
+        frame.hidden = true;
+        frame.allow = 'autoplay; fullscreen; gamepad; clipboard-read; clipboard-write; microphone; camera';
+        frame.referrerPolicy = 'no-referrer';
+        viewport.appendChild(frame);
+        const tab = { id, frame, url: '', title: 'New Tab', fav: null, hist: [], hi: -1, sjFrame: null };
+        tabs.push(tab);
+        renderTabs();
+        setActive(id);
+        if (url) go(tab, url, true);
+        return tab;
+      }
+
+      function closeTab(id) {
+        const i = tabs.findIndex((t) => t.id === id);
+        if (i < 0) return;
+        const t = tabs[i];
+        t.frame.remove();
+        tabs.splice(i, 1);
+        if (!tabs.length) { newTab(); return; }
+        if (activeId === id) setActive(tabs[Math.max(0, i - 1)].id);
+        else renderTabs();
+      }
+
+      function setActive(id) {
+        activeId = id;
+        const t = tabs.find((x) => x.id === id);
+        for (const x of tabs) {
+          x.frame.hidden = x.id !== id;
+        }
+        ntp.classList.toggle('hidden', !!t && !!t.url);
+        omni.value = t && t.url ? t.url : '';
+        renderTabs();
+        updateNav();
+      }
+
+      function renderTabs() {
+        tabsEl.textContent = '';
+        for (const t of tabs) {
+          const d = document.createElement('div');
+          d.className = 'tab' + (t.id === activeId ? ' on' : '');
+          const fav = t.fav
+            ? `<span class="tfav"><img src="${V.esc(t.fav)}" onerror="this.replaceWith(document.createTextNode('${V.esc((t.title[0]||'?').toUpperCase())}'))"></span>`
+            : `<span class="tfav">${V.esc((t.title[0] || '?').toUpperCase())}</span>`;
+          d.innerHTML = `${fav}<span class="tt">${V.esc(t.title)}</span><span class="tx">&times;</span>`;
+          d.addEventListener('click', (e) => { if (!e.target.closest('.tx')) setActive(t.id); });
+          $('.tx', d).addEventListener('click', () => closeTab(t.id));
+          tabsEl.appendChild(d);
+        }
+        const plus = document.createElement('button');
+        plus.className = 'newtab';
+        plus.textContent = '+';
+        plus.title = 'New tab';
+        plus.addEventListener('click', () => newTab());
+        tabsEl.appendChild(plus);
+      }
+
+      function updateNav() {
+        const t = tabs.find((x) => x.id === activeId);
+        $('#b-back').disabled = !t || t.hi <= 0;
+        $('#b-fwd').disabled = !t || t.hi >= t.hist.length - 1;
+      }
+
+      /* ================= navigation ================= */
+      async function go(tab, raw, push = true) {
+        let url = raw.trim();
+        if (!url) return;
+        const looksUrl = !url.includes(' ') && (/^(https?:\/\/)/i.test(url) || /^[\w-]+(\.[\w-]+)+(:\d+)?(\/.*)?$/.test(url));
+        if (looksUrl && !/^https?:\/\//i.test(url)) url = 'https://' + url;
+        if (!looksUrl) url = 'https://duckduckgo.com/html/?q=' + encodeURIComponent(url);
+
+        tab.url = url;
+        omni.value = url;
+        tab.title = hostname(url);
+        tab.fav = null;
+        renderTabs();
+        ntp.classList.add('hidden');
+        loadbar.classList.remove('busy');
+        void loadbar.offsetWidth;
+        loadbar.classList.add('busy');
+
+        try {
+          const eng = await ensureEngine();
+          if (push) { tab.hist = tab.hist.slice(0, tab.hi + 1); tab.hist.push(url); tab.hi++; }
+          if (eng === 'uv') {
+            tab.frame.src = encodeUrl(url);
+          } else if (eng === 'direct') {
+            tab.frame.src = url; // raw iframe — some sites refuse to be framed, but no proxy needed
+          } else {
+            if (!tab.sjFrame) tab.sjFrame = state.sj.createFrame(tab.frame);
+            tab.sjFrame.go(url);
+          }
+        } catch {
+          loadbar.classList.remove('busy');
+        }
+        updateNav();
+      }
+
+      function hostname(u) { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return u; } }
+
+      function ntpGo(q) {
+        const t = tabs.find((x) => x.id === activeId) || newTab();
+        go(t, q);
+      }
+      $('#ntp-search').addEventListener('keydown', (e) => { if (e.key === 'Enter') ntpGo(e.target.value); });
+      $('#ntp-ddg').addEventListener('click', () => ntpGo($('#ntp-search').value));
+
+      omni.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter') return;
+        const t = tabs.find((x) => x.id === activeId);
+        if (t) go(t, e.target.value);
+        e.target.blur();
+      });
+      omni.addEventListener('focus', () => omni.select());
+
+      /* toolbar */
+      $('#b-back').addEventListener('click', () => {
+        const t = tabs.find((x) => x.id === activeId);
+        if (t && t.hi > 0) { t.hi--; go(t, t.hist[t.hi], false); }
+      });
+      $('#b-fwd').addEventListener('click', () => {
+        const t = tabs.find((x) => x.id === activeId);
+        if (t && t.hi < t.hist.length - 1) { t.hi++; go(t, t.hist[t.hi], false); }
+      });
+      $('#b-rel').addEventListener('click', () => {
+        const t = tabs.find((x) => x.id === activeId);
+        if (t && t.url) go(t, t.url, false);
+      });
+      $('#b-home').addEventListener('click', () => {
+        const t = tabs.find((x) => x.id === activeId);
+        if (!t) return;
+        t.url = ''; t.frame.src = 'about:blank'; t.sjFrame = null;
+        ntp.classList.remove('hidden');
+        omni.value = '';
+        renderTabs(); updateNav();
+        $('#ntp-search').focus();
+      });
+      $('#b-pop').addEventListener('click', () => {
+        const t = tabs.find((x) => x.id === activeId);
+        if (t && t.url) window.open(t.url, '_blank', 'noopener');
+      });
+      $('#b-full').addEventListener('click', async () => {
+        try {
+          if (document.fullscreenElement) await document.exitFullscreen();
+          else await document.documentElement.requestFullscreen();
+        } catch {}
+      });
+
+      /* engine chip — cycles scramjet → ultraviolet → direct */
+      const ENGINE_LABEL = { scramjet: 'scramjet v2', uv: 'ultraviolet', direct: 'direct' };
+      function updateChip() {
+        const sel = V.getSettings().engine.selected || 'scramjet';
+        $('#engname').textContent = ENGINE_LABEL[sel] || sel;
+        const st = $('.engchip .st');
+        st.className = 'st' + (sel === 'direct' || state.engine === sel ? ' ok' : (state.busy ? '' : (state.engine ? ' ok' : '')));
+        $('#ntp-est').innerHTML = sel === 'direct'
+          ? `engine <b>direct</b> &middot; no proxy — some sites refuse frames`
+          : `engine <b>${ENGINE_LABEL[sel]}</b> &middot; wisp ${V.esc(wispUrl().replace(/^wss?:\/\//, ''))}`;
+      }
+      $('#engchip').addEventListener('click', async () => {
+        const order = ['scramjet', 'uv', 'direct'];
+        const cur = V.getSettings().engine.selected || 'scramjet';
+        const next = order[(order.indexOf(cur) + 1) % order.length];
+        V.patchSettings('engine.selected', next);
+        state.engine = null;
+        updateChip();
+        V.toast('switched to ' + (ENGINE_LABEL[next] || next));
+        const t = tabs.find((x) => x.id === activeId);
+        if (t && t.url) go(t, t.url, false);
+      });
+
+      /* title + favicon sniffing (proxied pages are same-origin) */
+      setInterval(() => {
+        const t = tabs.find((x) => x.id === activeId);
+        if (!t || !t.url) return;
+        try {
+          const doc = t.frame.contentDocument;
+          if (doc && doc.title) {
+            const changed = doc.title !== t.title;
+            t.title = doc.title;
+            if (!t.fav) {
+              const l = doc.querySelector('link[rel*="icon"]');
+              if (l && l.href) t.fav = l.href;
+            }
+            if (changed || t.fav) renderTabs();
+          }
+        } catch {}
+      }, 1500);
+
+      /* hide the loading bar when any frame finishes loading */
+      viewport.addEventListener('load', () => loadbar.classList.remove('busy'), true);
+
+      /* quick links on ntp */
+      for (const q of V.QUICK_LINKS) {
+        const b = document.createElement('button');
+        b.className = 'ql';
+        b.innerHTML = `${q.svg}<span>${V.esc(q.name)}</span>`;
+        b.addEventListener('click', () => ntpGo(q.url));
+        $('#ntp-links').appendChild(b);
+      }
+
+      /* external navigate requests (from shell or other apps) */
+      window.VeloraBrowser = {
+        navigate(url) {
+          const t = tabs.find((x) => x.id === activeId) || newTab();
+          go(t, url);
+        },
+      };
+
+      /* boot */
+      document.addEventListener('lunora:settings', updateChip);
+      const sp = new URLSearchParams(location.search);
+      newTab(sp.get('url') || null);
+      updateChip();
+      if (!sp.get('url')) setTimeout(() => $('#ntp-search').focus(), 60);
+    })();
+  </script>
+</body>
+</html>

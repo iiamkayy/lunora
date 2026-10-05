@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Weather</title>
+  <link rel="stylesheet" href="shared.css" />
+  <style>
+    html,body{height:100%;overflow-y:auto}
+    .app{min-height:100vh;padding:clamp(20px,4vw,44px);background:radial-gradient(55% 50% at 25% 20%, #0c2333, transparent 62%), radial-gradient(50% 50% at 80% 80%, #0a2b26, transparent 60%), #05090c}
+    .wrap{max-width:680px;margin:0 auto}
+    .head{display:flex;align-items:center;gap:12px;margin-bottom:24px}
+    .head b{font-size:22px;font-weight:900}
+    .head .vbtn{margin-left:auto}
+    .hero{display:grid;grid-template-columns:auto 1fr;gap:20px;align-items:center;padding:26px;border-radius:20px;background:var(--glass);border:1px solid var(--line);margin-bottom:16px}
+    .hero .big{font-size:64px;line-height:1}
+    .hero .temp{font-size:clamp(44px,7vw,64px);font-weight:900;letter-spacing:-.04em;line-height:1}
+    .hero .cond{color:var(--acc);font-weight:800;font-size:14px;margin-top:6px}
+    .hero .place{color:var(--muted);font-size:12px;font-weight:700;margin-top:4px;text-transform:uppercase;letter-spacing:.1em}
+    .days{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:10px}
+    .day{padding:16px 10px;border-radius:14px;background:var(--glass);border:1px solid var(--line);text-align:center}
+    .day .dname{font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.1em;color:var(--dim)}
+    .day .dico{font-size:26px;margin:8px 0}
+    .day .dhi{font-size:16px;font-weight:900}
+    .day .dlo{font-size:11px;color:var(--muted);font-weight:700}
+    .note{margin-top:16px;color:var(--dim);font-size:11px;font-weight:600;text-align:center}
+    .spinrow{display:flex;align-items:center;justify-content:center;gap:12px;padding:60px 0;color:var(--dim);font-weight:700;font-size:13px}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="wrap">
+      <div class="head">
+        <b>Weather</b>
+        <button class="vbtn sm" id="refresh">refresh</button>
+      </div>
+      <div id="content"><div class="spinrow"><div class="spinner"></div> finding you…</div></div>
+      <div class="note">live data from open-meteo · no accounts, no tracking</div>
+    </div>
+  </div>
+
+  <script src="shared.js"></script>
+  <script>
+    (() => {
+      'use strict';
+      const V = window.Velora;
+      const content = $('#content');
+
+      async function render() {
+        content.innerHTML = `<div class="spinrow"><div class="spinner"></div> finding you…</div>`;
+        try {
+          const w = await V.getWeather(true);
+          const days = w.daily.slice(0, 6).map((d, i) => {
+            const dt = new Date(d.date + 'T12:00:00');
+            const name = i === 0 ? 'today' : dt.toLocaleDateString([], { weekday: 'short' });
+            return `<div class="day">
+              <div class="dname">${V.esc(name)}</div>
+              <div class="dico">${V.weatherIcon(d.code)}</div>
+              <div class="dhi">${d.hi}°</div>
+              <div class="dlo">${d.lo}°</div>
+            </div>`;
+          }).join('');
+          content.innerHTML = `
+            <div class="hero">
+              <div class="big">${V.weatherIcon(w.code)}</div>
+              <div>
+                <div class="temp">${w.temp}°F</div>
+                <div class="cond">${V.esc(V.weatherText(w.code))}</div>
+                <div class="place">${V.esc(w.place)}</div>
+              </div>
+            </div>
+            <div class="days">${days}</div>
+          `;
+        } catch {
+          content.innerHTML = `<div class="hero" style="display:block;text-align:center">
+            <div class="big">🛰️</div>
+            <div class="cond" style="margin-top:10px">weather is unreachable right now</div>
+            <div class="place">the forecast API may be blocked on this network — try the refresh button later</div>
+          </div>`;
+        }
+      }
+      $('#refresh').addEventListener('click', render);
+      render();
+    })();
+  </script>
+</body>
+</html>

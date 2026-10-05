@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Apps</title>
+  <link rel="stylesheet" href="shared.css" />
+  <style>
+    html,body{overflow-y:auto}
+    .app{height:100vh;overflow-y:auto;padding:clamp(18px,4vw,44px)}
+    .wrap{max-width:1060px;margin:0 auto}
+    h1{margin:0 0 4px;font-size:24px;font-weight:900;letter-spacing:-.03em}
+    .sub{color:var(--muted);font-size:12.5px;margin-bottom:26px}
+    .sec-title{color:var(--dim);font-size:10.5px;font-weight:900;text-transform:uppercase;letter-spacing:.14em;margin:26px 0 12px}
+    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(158px,1fr));gap:13px}
+    .tile{
+      display:flex;flex-direction:column;align-items:center;gap:11px;padding:20px 12px 16px;
+      background:var(--glass);border:1px solid var(--line);border-radius:15px;cursor:pointer;
+      transition:.16s cubic-bezier(.2,.8,.3,1);text-align:center;
+    }
+    .tile:hover{transform:translateY(-4px);border-color:var(--line2);background:var(--glass2);box-shadow:0 16px 36px rgba(0,0,0,.4)}
+    .tile .ic{width:52px;height:52px;border-radius:15px;display:grid;place-items:center;color:#fff;font-weight:900;font-size:22px;box-shadow:0 8px 22px rgba(0,0,0,.35)}
+    .tile .ic img{width:26px;height:26px;filter:drop-shadow(0 1px 3px rgba(0,0,0,.35))}
+    .tile .ic .emoji{font-size:24px;line-height:1}
+    .tile b{font-size:13px;font-weight:800}
+    .tile span{font-size:10.5px;color:var(--dim);font-weight:700;margin-top:-6px}
+    .badge-row{display:flex;gap:4px}
+    .mini{font-size:8.5px;font-weight:900;text-transform:uppercase;letter-spacing:.05em;padding:2px 6px;border-radius:5px;background:var(--acc-dim);color:var(--acc);border:1px solid var(--acc-line)}
+    .mini.hot{background:rgba(255,158,222,.12);color:#ff9ede;border-color:rgba(255,158,222,.35)}
+    .foot{margin:36px 0 10px;color:var(--dim);font-size:11px;font-weight:700;text-align:center;letter-spacing:.1em;text-transform:uppercase}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="wrap">
+      <h1>Apps</h1>
+      <div class="sub">everything opens right inside lunora's built-in browser — no new tabs, no traces.</div>
+
+      <div class="sec-title">streaming &amp; media</div>
+      <div class="grid" id="grid-media"></div>
+      <div class="sec-title">gaming</div>
+      <div class="grid" id="grid-gaming"></div>
+      <div class="sec-title">social</div>
+      <div class="grid" id="grid-social"></div>
+      <div class="sec-title">tools &amp; extras</div>
+      <div class="grid" id="grid-tools"></div>
+
+      <div class="foot">For MISD X AISD students by MISD X AISD students</div>
+    </div>
+  </div>
+
+  <script src="shared.js"></script>
+  <script>
+    (() => {
+      'use strict';
+      const $ = (s) => document.querySelector(s);
+      const V = window.Velora;
+      const { esc } = V;
+
+      /* slug = simpleicons.org slug → real brand logo loaded from the CDN */
+      const APP_LIST = [
+        { name: 'YouTube',       url: 'https://www.youtube.com',           sec: 'media',  color: '#ff0033', slug: 'youtube' },
+        { name: 'Spotify',       url: 'https://open.spotify.com',          sec: 'media',  color: '#1db954', slug: 'spotify' },
+        { name: 'Twitch',        url: 'https://www.twitch.tv',             sec: 'media',  color: '#9146ff', slug: 'twitch' },
+        { name: 'SoundCloud',    url: 'https://soundcloud.com',            sec: 'media',  color: '#ff5500', slug: 'soundcloud' },
+        { name: 'Netflix',       url: 'https://www.netflix.com',           sec: 'media',  color: '#e50914', slug: 'netflix' },
+        { name: 'GeForce NOW',   url: 'https://www.nvidia.com/geforce-now', sec: 'gaming', color: '#76b900', slug: 'nvidia', sub: 'cloud gaming' },
+        { name: 'Xbox Cloud',    url: 'https://www.xbox.com/play',         sec: 'gaming', color: '#107c10', slug: 'xbox', sub: 'cloud gaming' },
+        { name: 'Steam',         url: 'https://store.steampowered.com',    sec: 'gaming', color: '#1b2838', slug: 'steam' },
+        { name: 'Roblox',        url: 'https://www.roblox.com',            sec: 'gaming', color: '#e2231a', slug: 'roblox' },
+        { name: 'Anime',         url: 'https://anigato.lol',               sec: 'gaming', color: '#ff8ab5', abbr: '🌸', sub: 'anigato.lol', tags: [['hot', 'hot']] },
+        { name: 'CrazyGames',    url: 'https://www.crazygames.com',        sec: 'gaming', color: '#ff6b2c', abbr: '🕹' },
+        { name: 'Poki',          url: 'https://poki.com',                  sec: 'gaming', color: '#3b82f6', abbr: '🎲' },
+        { name: 'Discord Server',url: 'https://discord.gg/k2wHsPefZ',      sec: 'social', color: '#5865f2', slug: 'discord', sub: 'our server · in-app', tags: [['hot', 'socials']] },
+        { name: 'Discord ↗',     social: 'newtab',                         sec: 'social', color: '#5865f2', slug: 'discord', sub: 'opens a real tab' },
+        { name: 'Reddit',        url: 'https://www.reddit.com',            sec: 'social', color: '#ff4500', slug: 'reddit' },
+        { name: 'Instagram',     url: 'https://www.instagram.com',         sec: 'social', color: '#e1306c', slug: 'instagram' },
+        { name: 'TikTok',        url: 'https://www.tiktok.com',            sec: 'social', color: '#00d3be', slug: 'tiktok' },
+        { name: 'X (Twitter)',   url: 'https://x.com',                     sec: 'social', color: '#1a1a1a', slug: 'x' },
+        { name: 'GitHub',        url: 'https://github.com',                sec: 'tools',  color: '#24292e', slug: 'github' },
+        { name: 'ChatGPT',       url: 'https://chatgpt.com',               sec: 'tools',  color: '#10a37f', slug: 'openai' },
+        { name: 'Virtual Machine',url: 'https://copy.sh/v86/',             sec: 'tools',  color: '#5b6bbf', slug: 'virtualbox', sub: 'full pc in your browser', tags: [['hot', 'vm']] },
+        { name: 'Remote Access', url: 'https://browser.lol',               sec: 'tools',  color: '#7ef0c0', abbr: '🖥', sub: 'browser.lol cloud pc' },
+        { name: 'Weather',       app: 'weather',                           sec: 'tools',  color: '#f59e0b', abbr: '⛅', sub: 'live forecast' },
+        { name: 'Figma',         url: 'https://www.figma.com',             sec: 'tools',  color: '#a259ff', slug: 'figma' },
+      ];
+
+      const grids = { media: $('#grid-media'), gaming: $('#grid-gaming'), social: $('#grid-social'), tools: $('#grid-tools') };
+
+      for (const a of APP_LIST) {
+        const t = document.createElement('div');
+        t.className = 'tile';
+        const inner = a.slug
+          ? `<img src="https://cdn.simpleicons.org/${esc(a.slug)}/ffffff" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'emoji',textContent:'${esc(a.abbr || '✦')}'}))">`
+          : `<span class="emoji">${esc(a.abbr || '✦')}</span>`;
+        t.innerHTML = `
+          <div class="ic" style="background:linear-gradient(145deg, ${esc(a.color)}, ${esc(a.color)}99)">${inner}</div>
+          <b>${esc(a.name)}</b>
+          ${a.sub ? `<span>${esc(a.sub)}</span>` : ''}
+          ${a.tags ? `<div class="badge-row">${a.tags.map(([c, l]) => `<span class="mini ${c}">${esc(l)}</span>`).join('')}</div>` : ''}
+        `;
+        t.addEventListener('click', () => {
+          if (a.social === 'newtab') { window.open('https://discord.gg/k2wHsPefZ', '_blank', 'noopener'); return; }
+          if (a.app) { V.openApp(a.app); return; }
+          V.openApp('browser', { url: a.url });
+        });
+        grids[a.sec].appendChild(t);
+      }
+    })();
+  </script>
+</body>
+</html>

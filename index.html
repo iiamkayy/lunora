@@ -1,0 +1,910 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="color-scheme" content="dark" />
+  <meta name="theme-color" content="#07090b" />
+  <title>lunora</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230d1113'/%3E%3Cpath d='M18 20l14 26 14-26' stroke='%237ef0c0' stroke-width='6' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="shared.css" />
+  <style>
+    /* ============ boot ============ */
+    #boot{position:fixed;inset:0;z-index:1000;background:#040607;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .6s ease;user-select:none}
+    #boot.done{opacity:0;pointer-events:none}
+    #boot .letters{display:flex;font-family:var(--display);font-weight:500;font-size:clamp(38px,7vw,64px);color:#dff5ec}
+    #boot .letters span{opacity:0;transform:translateY(14px);filter:blur(8px);animation:bin .7s cubic-bezier(.2,.8,.2,1) forwards}
+    @keyframes bin{to{opacity:1;transform:none;filter:blur(0)}}
+    #boot .line{width:0;height:2px;border-radius:2px;background:linear-gradient(90deg,transparent,var(--acc),transparent);margin:26px 0 18px;animation:bline 1.2s ease .55s forwards;box-shadow:0 0 18px var(--acc-dim)}
+    @keyframes bline{from{width:0}to{width:min(320px,60vw)}}
+    #boot .motto{color:#5d6a66;font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;opacity:0;animation:bin .8s ease .9s forwards;text-align:center;padding:0 18px}
+    #boot .bar{width:min(320px,60vw);height:3px;border-radius:99px;background:rgba(255,255,255,.07);margin-top:34px;overflow:hidden}
+    #boot .bar i{display:block;height:100%;width:0;background:var(--acc);border-radius:99px;transition:width .3s ease}
+    #boot .skip{position:absolute;bottom:26px;color:#39443f;font-size:10.5px;font-weight:700;letter-spacing:.18em;text-transform:uppercase}
+
+    /* ============ wallpaper ============ */
+    #wallpaper{position:fixed;inset:0;z-index:0;overflow:hidden;background:#040607}
+    #wallpaper.aurora:before{
+      content:"";position:absolute;inset:-30%;
+      background:
+        radial-gradient(42% 38% at 22% 30%, rgba(126,240,192,.16), transparent 60%),
+        radial-gradient(36% 42% at 76% 22%, rgba(90,160,255,.13), transparent 62%),
+        radial-gradient(48% 44% at 62% 78%, rgba(126,240,192,.1), transparent 60%),
+        radial-gradient(40% 40% at 18% 82%, rgba(255,158,222,.08), transparent 62%);
+      animation:drift 26s ease-in-out infinite alternate;filter:blur(10px);
+    }
+    #wallpaper.aurora:after{
+      content:"";position:absolute;inset:0;
+      background-image:radial-gradient(rgba(255,255,255,.05) 1px, transparent 1.4px);
+      background-size:34px 34px;
+      mask-image:radial-gradient(70% 60% at 50% 42%, black, transparent 85%);
+      -webkit-mask-image:radial-gradient(70% 60% at 50% 42%, black, transparent 85%);
+    }
+    @keyframes drift{from{transform:translate(-2%,-2%) rotate(0deg)}to{transform:translate(2%,3%) rotate(4deg)}}
+    #wall-video,#wall-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none}
+    #wall-dim{position:absolute;inset:0;background:#040607;pointer-events:none}
+
+    /* ============ lockscreen ============ */
+    .lock{position:fixed;inset:0;z-index:700;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(3,5,6,.35);backdrop-filter:blur(26px) saturate(120%);-webkit-backdrop-filter:blur(26px) saturate(120%);transition:opacity .5s ease, transform .5s ease}
+    .lock.gone{opacity:0;pointer-events:none;transform:scale(1.04)}
+    #lockscreen .time{font-family:var(--display);font-weight:600;font-size:clamp(72px,13vw,132px);color:#f2faf7;letter-spacing:.02em;text-shadow:0 4px 40px rgba(0,0,0,.5);line-height:1}
+    #lockscreen .date{margin-top:10px;color:#bcd3cb;font-size:clamp(14px,2vw,19px);font-weight:700;letter-spacing:.06em;text-shadow:0 2px 18px rgba(0,0,0,.5)}
+    #lockscreen .hint{position:absolute;bottom:44px;color:#7d948c;font-size:11.5px;font-weight:800;letter-spacing:.22em;text-transform:uppercase;animation:hintpulse 2.6s ease infinite}
+    @keyframes hintpulse{50%{opacity:.45}}
+
+    /* ============ login ============ */
+    #login{background:rgba(3,5,6,.42)}
+    #login .lbox{display:flex;flex-direction:column;align-items:center;gap:14px;animation:fadein .35s ease}
+    #login .ava{width:96px;height:96px;border-radius:50%;border:3px solid rgba(255,255,255,.22);box-shadow:0 18px 50px rgba(0,0,0,.55);background:#12171a;overflow:hidden;display:grid;place-items:center;font-weight:900;font-size:34px;color:#fff}
+    #login .ava img{width:100%;height:100%;object-fit:cover}
+    #login .who b{display:block;text-align:center;font-size:22px;font-weight:900;color:#f2faf7;text-shadow:0 2px 20px rgba(0,0,0,.5)}
+    #login .who span{display:block;text-align:center;color:#9db5ad;font-size:12.5px;font-weight:700;margin-top:3px}
+    #login .pinrow{display:flex;gap:8px;margin-top:6px}
+    #login .pinrow input{width:230px;height:44px;border-radius:13px;border:1px solid rgba(255,255,255,.18);background:rgba(8,12,13,.6);color:#fff;padding:0 16px;outline:none;text-align:center;font-size:14px;backdrop-filter:blur(8px)}
+    #login .pinrow input:focus{border-color:var(--acc-line);box-shadow:0 0 0 4px var(--acc-dim)}
+    #login .pinrow button{width:44px;height:44px;border-radius:13px;border:0;background:var(--acc);color:#06130d;font-weight:900;font-size:16px}
+    #login .enterbtn{margin-top:6px;padding:13px 44px;border-radius:14px;border:0;background:var(--acc);color:#06130d;font-weight:900;font-size:14.5px;letter-spacing:.04em;box-shadow:0 12px 40px rgba(0,0,0,.4)}
+    #login .lerr{color:#ffb3ad;font-size:12px;font-weight:700;min-height:16px;text-align:center}
+    #login .alt{color:#7d948c;font-size:11.5px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;background:none;border:0;margin-top:4px}
+    #login .alt:hover{color:var(--acc)}
+    #login .reg{width:min(320px,90vw);display:flex;flex-direction:column;gap:9px}
+    #login .reg input{height:42px;border-radius:12px;border:1px solid rgba(255,255,255,.16);background:rgba(8,12,13,.6);color:#fff;padding:0 14px;outline:none}
+    #login .reg input:focus{border-color:var(--acc-line)}
+    .shake{animation:shake .4s ease}
+    @keyframes shake{20%,60%{transform:translateX(-9px)}40%,80%{transform:translateX(9px)}}
+
+    /* ============ desktop / home ============ */
+    #desktop{position:fixed;inset:0;z-index:1;display:flex;align-items:center;justify-content:center}
+    #desktop.hidden{display:none}
+    #home{width:min(760px,92vw);display:flex;flex-direction:column;align-items:center;text-align:center;padding-bottom:6vh}
+    #home h1{margin:0 0 34px;font-size:clamp(34px,6vw,56px)}
+    #home .searchrow{display:flex;width:100%;max-width:600px;align-items:center;gap:0;position:relative}
+    #home .search{
+      flex:1;height:52px;border-radius:16px;outline:none;border:1px solid var(--line);
+      background:rgba(10,14,15,.55);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+      color:var(--text);padding:0 96px 0 48px;font-size:14.5px;transition:.18s;box-shadow:0 12px 40px rgba(0,0,0,.35);
+    }
+    #home .search:focus{border-color:var(--acc-line);box-shadow:0 0 0 4px var(--acc-dim),0 12px 40px rgba(0,0,0,.4)}
+    #home .search::placeholder{color:var(--dim)}
+    #home .sicon{position:absolute;left:16px;width:19px;height:19px;color:var(--dim);pointer-events:none}
+    #home .ddg{position:absolute;right:9px;height:34px;padding:0 12px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.05);color:var(--acc);font-weight:800;font-size:12px;cursor:pointer;transition:.15s}
+    #home .ddg:hover{background:var(--acc);color:#06130d}
+    #home .links{display:flex;gap:clamp(14px,3.4vw,34px);margin-top:44px;flex-wrap:wrap;justify-content:center}
+    #home .link{display:flex;flex-direction:column;align-items:center;gap:9px;color:var(--muted);cursor:pointer;transition:.16s;background:none;border:0;padding:6px 4px;border-radius:12px}
+    #home .link svg{width:26px;height:26px}
+    #home .link span{font-size:12px;font-weight:700;letter-spacing:.02em}
+    #home .link:hover{color:var(--text);transform:translateY(-3px)}
+    #home .socials{margin-top:20px;display:flex;gap:8px}
+    #home .socpill{display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 14px;border-radius:99px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--muted);font-size:11px;font-weight:800;transition:.15s}
+    #home .socpill:hover{color:var(--acc);border-color:var(--acc-line)}
+    #home .socpill svg{width:14px;height:14px}
+    #home .motto{margin-top:34px;color:var(--dim);font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase}
+    #home .hint{margin-top:14px;color:#39443f;font-size:10.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase}
+
+    /* ============ dock (macos style) ============ */
+    #dock{
+      position:fixed;left:50%;bottom:10px;transform:translateX(-50%);z-index:500;
+      display:flex;align-items:center;gap:7px;max-width:calc(100vw - 20px);
+      padding:9px 12px;border-radius:24px;border:1px solid var(--line);
+      background:rgba(12,16,17,.66);backdrop-filter:blur(26px) saturate(160%);-webkit-backdrop-filter:blur(26px) saturate(160%);
+      box-shadow:0 18px 60px rgba(0,0,0,.55);
+      transition:opacity .35s ease;
+    }
+    body.locked #dock{opacity:0;pointer-events:none}
+    .dockapp{
+      position:relative;width:50px;height:50px;border-radius:15px;border:0;flex:0 0 auto;
+      display:grid;place-items:center;color:#fff;transition:transform .2s cubic-bezier(.2,.9,.3,1.5), box-shadow .2s;
+      box-shadow:0 6px 16px rgba(0,0,0,.35), inset 0 1px rgba(255,255,255,.25);
+    }
+    .dockapp svg{width:24px;height:24px}
+    .dockapp:hover{transform:translateY(-11px) scale(1.24)}
+    .dockapp .tip{
+      position:absolute;bottom:calc(100% + 14px);left:50%;transform:translateX(-50%) translateY(4px);
+      background:rgba(20,26,28,.92);border:1px solid var(--line2);color:var(--text);
+      font-size:10.5px;font-weight:800;padding:5px 10px;border-radius:8px;white-space:nowrap;
+      opacity:0;pointer-events:none;transition:.15s;
+    }
+    .dockapp:hover .tip{opacity:1;transform:translateX(-50%) translateY(0)}
+    .dockapp .ind{position:absolute;bottom:-7px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:#fff;opacity:0;transition:.2s}
+    .dockapp.open .ind{opacity:.85}
+    .dockapp.active{box-shadow:0 6px 16px rgba(0,0,0,.35), inset 0 1px rgba(255,255,255,.25), 0 0 0 2px var(--acc-line)}
+    .dockdiv{width:1px;height:40px;background:rgba(255,255,255,.12);margin:0 5px;flex:0 0 auto}
+    #dock-right{display:flex;align-items:center;gap:8px}
+    #wx{display:flex;align-items:center;gap:8px;height:44px;padding:0 12px;border-radius:13px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--text);font-weight:800;font-size:13px;transition:.15s}
+    #wx:hover{border-color:var(--acc-line);color:var(--acc)}
+    #wx .wemoji{font-size:16px}
+    #wx .wsub{display:block;font-size:8.5px;color:var(--dim);font-weight:800;text-transform:uppercase;letter-spacing:.06em;text-align:left}
+    #wx b{font-size:14px}
+    #clock{display:flex;flex-direction:column;align-items:center;line-height:1.15;padding:0 6px}
+    #clock b{font-size:13.5px;font-weight:800;color:var(--text)}
+    #clock span{font-size:9px;color:var(--dim);font-weight:700}
+    #lockbtn{width:44px;height:44px;border-radius:13px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--muted);display:grid;place-items:center;transition:.15s}
+    #lockbtn:hover{color:var(--acc);border-color:var(--acc-line)}
+    #lockbtn svg{width:17px;height:17px}
+
+    /* ============ windows ============ */
+    .win{
+      position:fixed;z-index:100;display:flex;flex-direction:column;min-width:320px;min-height:220px;
+      border-radius:16px;overflow:hidden;border:1px solid var(--line2);
+      background:rgba(8,11,12,.86);backdrop-filter:blur(22px) saturate(150%);-webkit-backdrop-filter:blur(22px) saturate(150%);
+      box-shadow:0 30px 80px rgba(0,0,0,.6);animation:wopen .22s cubic-bezier(.2,.9,.3,1.15);
+    }
+    @keyframes wopen{from{opacity:0;transform:scale(.96) translateY(10px)}to{opacity:1;transform:none}}
+    .win.min{display:none}
+    .win.max{border-radius:0;inset:0 0 0 0!important;width:100vw!important;height:calc(100vh - 78px)!important;transform:none!important}
+    .win-head{display:flex;align-items:center;gap:10px;height:44px;flex:0 0 44px;padding:0 8px 0 14px;border-bottom:1px solid var(--line);cursor:grab;user-select:none;background:rgba(255,255,255,.02)}
+    .win-head:active{cursor:grabbing}
+    .win-head .wicon{width:17px;height:17px;color:var(--acc)}
+    .win-head b{font-size:12.5px;font-weight:800;letter-spacing:.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .win-head .wact{margin-left:auto;display:flex;gap:6px}
+    .win-head .wbtn{width:30px;height:30px;border-radius:9px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--muted);cursor:pointer;display:grid;place-items:center;transition:.14s;font-size:12px;font-weight:800}
+    .win-head .wbtn:hover{background:rgba(255,255,255,.1);color:var(--text)}
+    .win-head .wbtn.close:hover{background:var(--danger);border-color:transparent;color:#160606}
+    .win iframe{flex:1;border:0;width:100%;background:#0a0d0e}
+    .win .wload{position:absolute;inset:44px 0 0;display:grid;place-items:center;background:#0a0d0e;z-index:2;transition:opacity .3s}
+    .win .wload.gone{opacity:0;pointer-events:none}
+
+    /* ============ palette / ctx / misc ============ */
+    #palette{position:fixed;inset:0;z-index:800;display:none;background:rgba(2,4,5,.6);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+    #palette.open{display:block}
+    #palette .pbox{width:min(560px,92vw);margin:12vh auto 0;border-radius:18px;overflow:hidden;border:1px solid var(--line2);background:rgba(12,16,17,.92);box-shadow:var(--shadow);animation:wopen .18s ease}
+    #palette input{width:100%;height:54px;border:0;outline:0;background:transparent;padding:0 20px;font-size:15px;color:var(--text);border-bottom:1px solid var(--line)}
+    #palette .plist{max-height:46vh;overflow:auto;padding:8px}
+    #palette .pitem{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:11px;cursor:pointer;color:var(--muted)}
+    #palette .pitem svg{width:18px;height:18px}
+    #palette .pitem b{color:var(--text);font-size:13px;font-weight:700}
+    #palette .pitem small{margin-left:auto;color:var(--dim);font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.08em}
+    #palette .pitem:hover,#palette .pitem.sel{background:var(--acc-dim);color:var(--acc)}
+
+    #ctx{position:fixed;z-index:900;display:none;min-width:190px;padding:6px;border-radius:13px;border:1px solid var(--line2);background:rgba(12,16,17,.95);box-shadow:var(--shadow)}
+    #ctx.open{display:block}
+    #ctx .citem{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:9px;cursor:pointer;color:var(--muted);font-size:12.5px;font-weight:700}
+    #ctx .citem:hover{background:var(--acc-dim);color:var(--acc)}
+    #ctx .citem svg{width:15px;height:15px}
+
+    /* notifications (phone-style) */
+    #notifs{position:fixed;top:14px;right:14px;z-index:860;display:flex;flex-direction:column;gap:8px;width:330px;pointer-events:none}
+    .notif{pointer-events:auto;display:flex;gap:11px;align-items:center;padding:12px 14px;border-radius:16px;background:rgba(14,18,20,.94);border:1px solid var(--line2);box-shadow:0 16px 44px rgba(0,0,0,.55);cursor:pointer;animation:nin .28s cubic-bezier(.2,.9,.3,1.2);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+    .notif:hover{border-color:var(--acc-line)}
+    .notif.out{transition:.3s;opacity:0;transform:translateX(30px)}
+    @keyframes nin{from{transform:translateX(30px);opacity:0}to{transform:none;opacity:1}}
+    .notif .nava{width:40px;height:40px;border-radius:50%;background:var(--acc-dim);border:1px solid var(--acc-line);display:grid;place-items:center;font-weight:900;color:var(--acc);flex:0 0 auto;overflow:hidden}
+    .notif .nava img{width:100%;height:100%;object-fit:cover}
+    .notif .ntxt{flex:1;min-width:0}
+    .notif .ntxt b{display:block;font-size:12.5px;font-weight:800;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .notif .ntxt p{margin:2px 0 0;font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .notif .napp{font-size:8.5px;font-weight:900;color:var(--dim);text-transform:uppercase;letter-spacing:.1em}
+    #callnotif{position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:880;display:none;align-items:center;gap:14px;padding:14px 18px;border-radius:18px;background:rgba(14,18,20,.96);border:1px solid var(--acc-line);box-shadow:0 18px 50px rgba(0,0,0,.6);backdrop-filter:blur(18px)}
+    #callnotif.open{display:flex;animation:nin .28s ease}
+    #callnotif .nava{width:52px;height:52px;border-radius:50%;background:var(--acc-dim);border:2px solid var(--acc-line);display:grid;place-items:center;font-weight:900;font-size:20px;color:var(--acc);overflow:hidden;animation:hintpulse 1.2s ease infinite}
+    #callnotif .nava img{width:100%;height:100%;object-fit:cover}
+    #callnotif .ntxt b{display:block;font-size:14px;font-weight:900;color:var(--text)}
+    #callnotif .ntxt span{font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.1em}
+    #callnotif button{border:0;height:42px;padding:0 18px;border-radius:12px;font-weight:900;font-size:12.5px;cursor:pointer}
+    #callnotif .acc{background:var(--acc);color:#06130d}
+    #callnotif .dec{background:var(--danger);color:#160606}
+
+    #panic-btn{position:fixed;right:14px;bottom:78px;z-index:600;width:44px;height:44px;border-radius:50%;border:1px solid rgba(255,107,98,.5);background:rgba(255,107,98,.14);color:var(--danger);font-weight:900;font-size:16px;cursor:pointer;display:none;place-items:center;backdrop-filter:blur(10px);transition:.15s}
+    #panic-btn:hover{background:var(--danger);color:#160606}
+    #filewarn{position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:950;display:none;padding:10px 16px;border-radius:12px;background:rgba(255,209,102,.12);border:1px solid rgba(255,209,102,.4);color:var(--warn);font-size:12px;font-weight:700;backdrop-filter:blur(10px)}
+
+    @media (max-width:760px){
+      #dock{gap:5px;padding:8px}
+      .dockapp{width:44px;height:44px;border-radius:13px}
+      #wx{display:none}
+      #clock span{display:none}
+      #home .search{padding-right:80px}
+    }
+  </style>
+</head>
+  <body class="locked">
+    <!-- boot -->
+  <div id="boot">
+    <div class="letters" id="boot-letters"></div>
+    <div class="line"></div>
+    <div class="motto">For MISD X AISD students by MISD X AISD students</div>
+    <div class="bar"><i id="boot-bar"></i></div>
+    <div class="skip">click anywhere to skip</div>
+  </div>
+
+  <!-- wallpaper -->
+  <div id="wallpaper" class="aurora">
+    <img id="wall-img" alt="" />
+    <video id="wall-video" autoplay muted loop playsinline></video>
+    <div id="wall-dim"></div>
+  </div>
+
+  <!-- lockscreen -->
+  <div class="lock" id="lockscreen">
+    <div class="time" id="lock-time">--:--</div>
+    <div class="date" id="lock-date">---</div>
+    <div class="hint">click anywhere or press any key</div>
+  </div>
+
+  <!-- login -->
+  <div class="lock gone" id="login">
+    <div class="lbox" id="login-box"></div>
+  </div>
+
+  <!-- desktop -->
+  <div id="desktop" class="hidden">
+    <div id="home">
+      <h1 class="wordmark">lunora</h1>
+      <div class="searchrow">
+        <svg class="sicon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input class="search" id="home-search" placeholder="enter url..." autocomplete="off" spellcheck="false" />
+        <button class="ddg" id="home-ddg" title="Search with DuckDuckGo">ddg</button>
+      </div>
+      <div class="links" id="home-links"></div>
+      <div class="socials" id="home-socials"></div>
+      <div class="motto">For MISD X AISD students by MISD X AISD students</div>
+      <div class="hint">ctrl + k &mdash; spotlight</div>
+    </div>
+  </div>
+
+  <!-- windows -->
+  <div id="windows"></div>
+
+  <!-- dock -->
+  <div id="dock">
+    <div id="dock-apps" style="display:flex;gap:7px;align-items:center"></div>
+    <div class="dockdiv"></div>
+    <div id="dock-right">
+      <button id="wx" title="Weather"><span class="wemoji">☁️</span><span><b id="wx-temp">--°</b><span class="wsub" id="wx-city">weather</span></span></button>
+      <div id="clock"><b>--:--</b><span>---</span></div>
+      <button id="lockbtn" title="Lock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="4" y="10.5" width="16" height="10" rx="2.5"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/></svg></button>
+    </div>
+  </div>
+
+  <!-- palette / ctx / misc -->
+  <div id="palette">
+    <div class="pbox">
+      <input id="pal-input" placeholder="type a command or app..." autocomplete="off" spellcheck="false" />
+      <div class="plist" id="pal-list"></div>
+    </div>
+  </div>
+  <div id="notifs"></div>
+  <div id="callnotif"></div>
+  <div id="ctx"></div>
+  <button id="panic-btn" title="PANIC">&times;</button>
+  <div id="filewarn">&#9888; lunora needs to be served over http. run <b>node server.js</b> and open http://localhost:3000</div>
+
+  <script src="shared.js"></script>
+  <script src="api.js"></script>
+  <script>
+    (() => {
+      'use strict';
+      const $ = (s, r = document) => r.querySelector(s);
+      const V = window.Velora;
+      const { esc, sha256 } = V;
+
+      /* ================= boot ================= */
+      const boot = $('#boot');
+      'lunora'.split('').forEach((ch, i) => {
+        const s = document.createElement('span');
+        s.textContent = ch;
+        s.style.animationDelay = (0.06 * i + 0.08) + 's';
+        $('#boot-letters').appendChild(s);
+      });
+      let bp = 0;
+      const barTimer = setInterval(() => { bp = Math.min(100, bp + 8 + Math.random() * 14); $('#boot-bar').style.width = bp + '%'; }, 140);
+      const repeat = sessionStorage.getItem('lunora.booted');
+      const bootMs = repeat ? 1400 : 2500;
+      setTimeout(endBoot, bootMs);
+      boot.addEventListener('click', () => endBoot());
+      function endBoot() {
+        if (!boot.isConnected || boot.classList.contains('done')) return;
+        clearInterval(barTimer);
+        $('#boot-bar').style.width = '100%';
+        boot.classList.add('done');
+        sessionStorage.setItem('lunora.booted', '1');
+        setTimeout(() => boot.remove(), 700);
+        showLock();
+      }
+      if (location.protocol === 'file:') $('#filewarn').style.display = 'block';
+
+      /* ================= wallpaper ================= */
+      const GRADIENTS = {
+        ember:   'radial-gradient(60% 70% at 20% 20%, #2b1220, transparent 60%), radial-gradient(50% 60% at 80% 30%, #331b0e, transparent 60%), radial-gradient(70% 70% at 60% 85%, #1d0f2b, transparent 65%), #0a0708',
+        deep:    'radial-gradient(55% 60% at 25% 25%, #0c2333, transparent 62%), radial-gradient(60% 55% at 75% 70%, #0a2b26, transparent 60%), #05090c',
+        blossom: 'radial-gradient(55% 60% at 30% 30%, #2c1428, transparent 62%), radial-gradient(55% 55% at 75% 65%, #26102c, transparent 60%), #0c070c',
+        forest:  'radial-gradient(60% 65% at 25% 30%, #0d2818, transparent 62%), radial-gradient(55% 55% at 75% 70%, #123322, transparent 60%), #060b08',
+        slate:   'radial-gradient(60% 60% at 30% 25%, #1a222c, transparent 65%), radial-gradient(55% 60% at 75% 75%, #101720, transparent 60%), #070a0d',
+        dusk:    'radial-gradient(50% 55% at 30% 25%, #241a33, transparent 62%), radial-gradient(55% 60% at 72% 72%, #0f2233, transparent 62%), #08070d',
+      };
+      let mediaURLs = [];
+      async function applyWallpaper() {
+        const w = V.getSettings().wallpaper;
+        const wp = $('#wallpaper'), img = $('#wall-img'), vid = $('#wall-video'), dim = $('#wall-dim');
+        mediaURLs.forEach((u) => URL.revokeObjectURL(u)); mediaURLs = [];
+        img.style.display = 'none'; vid.style.display = 'none'; vid.removeAttribute('src'); img.removeAttribute('src');
+        wp.style.background = ''; wp.classList.remove('aurora');
+        const kind = (w.type || 'aurora').split(':')[0];
+        // value can live in w.value ("image" + "wall-image") or after the colon ("gradient:dusk")
+        const val = w.value || (w.type || '').split(/:(.*)/s)[1] || '';
+        if (kind === 'aurora') wp.classList.add('aurora');
+        else if (kind === 'gradient') wp.style.background = GRADIENTS[val] || GRADIENTS.deep;
+        else if (kind === 'url') { img.src = val; img.style.display = 'block'; }
+        else if (kind === 'image' || kind === 'video') {
+          try {
+            const blob = await V.files.get(val);
+            if (blob) {
+              const u = URL.createObjectURL(blob); mediaURLs.push(u);
+              if (kind === 'video') { vid.src = u; vid.style.display = 'block'; }
+              else { img.src = u; img.style.display = 'block'; }
+            } else {
+              // blob missing (e.g. cleared storage) — fall back to aurora instead of a black screen
+              wp.classList.add('aurora');
+            }
+          } catch { wp.classList.add('aurora'); }
+        }
+        dim.style.background = `rgba(4,6,7,${w.dim ?? 0.32})`;
+        const blur = w.blur || 0;
+        img.style.filter = blur ? `blur(${blur}px)` : '';
+        vid.style.filter = blur ? `blur(${blur}px)` : '';
+      }
+
+      /* ================= lock / login (server accounts) ================= */
+      const users = () => V.store.get('msg.users', {});
+      const osCfg = () => V.getSettings().os;
+      let unlocked = false;
+
+      function showLock() {
+        unlocked = false;
+        document.body.classList.add('locked');
+        $('#desktop').classList.add('hidden');
+        $('#login').classList.add('gone');
+        $('#lockscreen').classList.remove('gone');
+        tick();
+      }
+
+      function tick() {
+        const d = new Date();
+        const t = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+        const dt = d.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
+        $('#lock-time').textContent = t;
+        $('#lock-date').textContent = dt;
+        $('#clock b').textContent = t;
+        $('#clock span').textContent = d.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+      }
+      tick(); setInterval(tick, 10000);
+
+      function unlock() {
+        unlocked = true;
+        wireNotifications();
+        document.body.classList.remove('locked');
+        $('#lockscreen').classList.add('gone');
+        $('#login').classList.add('gone');
+        $('#desktop').classList.remove('hidden');
+      }
+
+      async function avatarFor(u) {
+        try {
+          const r = await LunoraAPI.api('/api/user/' + encodeURIComponent(u));
+          return r.user && r.user.avatarId ? '/files/' + r.user.avatarId : null;
+        } catch { return null; }
+      }
+
+      function showLogin() {
+        const box = $('#login-box');
+        const u = osCfg().lastUser;
+        const sess = LunoraAPI.auth.get();
+        const hasSession = sess && sess.token && (!u || sess.user?.u === u);
+        box.textContent = '';
+        $('#login').classList.remove('gone');
+
+        const who = (u || sess?.user?.u || '');
+        box.innerHTML = `
+          <div class="ava" id="lg-ava">${esc((who || '?')[0].toUpperCase())}</div>
+          <div class="who"><b>${esc(sess?.user?.display || who || 'welcome')}</b><span>${who ? '@' + esc(who) : 'sign in to lunora'}</span></div>
+          ${hasSession && !osCfg().passwordOn
+            ? `<button class="enterbtn" id="lg-enter">enter lunora</button>`
+            : `<div class="pinrow"><input id="lg-pass" type="password" placeholder="password" autocomplete="current-password" /><button id="lg-go">&rarr;</button></div>`}
+          <div class="lerr" id="lg-err"></div>
+          <button class="alt" id="lg-switch">use another account</button>
+        `;
+        avatarFor(who).then((src) => { const a = $('#lg-ava'); if (src && a) { a.textContent = ''; a.innerHTML = `<img src="${src}">`; } });
+
+        const doUnlock = () => { V.store.set('msg.me', who); V.store.set('msg.meSession', who); unlock(); refreshWeather(); };
+        if (hasSession && !osCfg().passwordOn) {
+          $('#lg-enter').addEventListener('click', doUnlock);
+        } else {
+          const tryPw = async () => {
+            const p = $('#lg-pass').value;
+            try {
+              const r = await LunoraAPI.api('/api/login', { body: { username: who || $('#lg-user')?.value, password: p } });
+              LunoraAPI.auth.set(r);
+              V.patchSettings('os.lastUser', r.user.u, false);
+              doUnlock();
+            } catch (e) {
+              $('#lg-err').textContent = e.message;
+              $('.lbox').classList.add('shake');
+              setTimeout(() => $('.lbox').classList.remove('shake'), 450);
+            }
+          };
+          $('#lg-go').addEventListener('click', tryPw);
+          $('#lg-pass').addEventListener('keydown', (e) => { if (e.key === 'Enter') tryPw(); });
+          setTimeout(() => $('#lg-pass')?.focus(), 300);
+        }
+        $('#lg-switch').addEventListener('click', showRegister);
+      }
+
+      function showRegister() {
+        const box = $('#login-box');
+        box.textContent = '';
+        $('#login').classList.remove('gone');
+        box.innerHTML = `
+          <div class="ava">?</div>
+          <div class="who"><b>create your profile</b><span>saved on the lunora server — works on any device</span></div>
+          <div class="reg">
+            <input id="rg-user" placeholder="username (a-z, 0-9, _)" maxlength="20" />
+            <input id="rg-display" placeholder="display name" maxlength="32" />
+            <input id="rg-pass" type="password" placeholder="password" />
+            <button class="enterbtn" id="rg-go" style="width:100%">create &amp; enter</button>
+          </div>
+          <div class="lerr" id="rg-err"></div>
+        `;
+        const go = async () => {
+          const err = $('#rg-err');
+          try {
+            const r = await LunoraAPI.api('/api/register', {
+              body: { username: $('#rg-user').value, display: $('#rg-display').value, password: $('#rg-pass').value },
+            });
+            LunoraAPI.auth.set(r);
+            V.patchSettings('os.lastUser', r.user.u, false);
+            V.store.set('msg.me', r.user.u);
+            unlock();
+          } catch (e) {
+            err.textContent = e.message;
+          }
+        };
+        $('#rg-go').addEventListener('click', go);
+        $('#rg-pass').addEventListener('keydown', (e) => { if (e.key === 'Enter') go(); });
+        setTimeout(() => $('#rg-user')?.focus(), 300);
+      }
+
+      $('#lockscreen').addEventListener('pointerdown', () => {
+        const sess = LunoraAPI.auth.get();
+        const u = osCfg().lastUser;
+        if (sess && sess.token && (!u || sess.user?.u === u) && !osCfg().passwordOn) unlock();
+        else showLogin();
+      });
+      window.addEventListener('keydown', (e) => {
+        if (unlocked || boot.isConnected) return;
+        if ($('#lockscreen').classList.contains('gone')) return;
+        if (e.target.closest && e.target.closest('input, textarea')) return;
+        const sess = LunoraAPI.auth.get();
+        const u = osCfg().lastUser;
+        if (sess && sess.token && (!u || sess.user?.u === u) && !osCfg().passwordOn) unlock();
+        else showLogin();
+      });
+      $('#lockbtn').addEventListener('click', showLock);
+      document.addEventListener('lunora:settings', () => { applyWallpaper(); applyPanicBtn(); });
+
+      /* ================= weather chip ================= */
+      async function refreshWeather() {
+        try {
+          const w = await V.getWeather();
+          $('#wx-temp').textContent = `${w.temp}°`;
+          $('#wx-city').textContent = (w.place || 'weather').slice(0, 14);
+          $('.wemoji').textContent = V.weatherIcon(w.code);
+          $('#wx').title = `${V.weatherText(w.code)} — ${w.place} (click for forecast)`;
+        } catch {
+          $('#wx-temp').textContent = '--°';
+          $('#wx-city').textContent = 'offline';
+        }
+      }
+      $('#wx').addEventListener('click', () => openApp('weather'));
+      refreshWeather();
+      setInterval(refreshWeather, 10 * 60000);
+
+      /* ================= home ================= */
+      for (const q of V.QUICK_LINKS) {
+        const b = document.createElement('button');
+        b.className = 'link';
+        b.innerHTML = `${q.svg}<span>${esc(q.name)}</span>`;
+        b.title = q.url;
+        b.addEventListener('click', () => V.openApp('browser', { url: q.url }));
+        $('#home-links').appendChild(b);
+      }
+      for (const s of V.SOCIALS) {
+        const a = document.createElement('a');
+        a.className = 'socpill';
+        a.href = s.url;
+        a.target = '_blank';
+        a.rel = 'noopener';
+        a.innerHTML = `${V.ICONS.messenger}<span>${esc(s.label)} ↗</span>`;
+        a.title = 'opens in a real tab';
+        $('#home-socials').appendChild(a);
+      }
+      function goSearch(q) {
+        q = (q || '').trim();
+        if (!q) return;
+        const isUrl = /^(https?:\/\/)?([\w-]+\.)+[a-z]{2,}(\/\S*)?$/i.test(q) && !q.includes(' ');
+        const url = isUrl ? (/^https?:\/\//i.test(q) ? q : 'https://' + q)
+                          : 'https://duckduckgo.com/html/?q=' + encodeURIComponent(q);
+        V.openApp('browser', { url });
+      }
+      $('#home-search').addEventListener('keydown', (e) => { if (e.key === 'Enter') goSearch(e.target.value); });
+      $('#home-ddg').addEventListener('click', () => goSearch($('#home-search').value));
+
+      /* ================= window manager ================= */
+      const wins = new Map();
+      const zTop = () => 100 + document.querySelectorAll('.win').length;
+
+      function dockButtons() {
+        const wrap = $('#dock-apps');
+        const colors = {
+          home: 'linear-gradient(145deg,#2dd4a4,#0e7a5f)',
+          games: 'linear-gradient(145deg,#a78bfa,#6d28d9)',
+          apps: 'linear-gradient(145deg,#60a5fa,#1d4ed8)',
+          messenger: 'linear-gradient(145deg,#4ade80,#15803d)',
+          browser: 'linear-gradient(145deg,#22d3ee,#0e7490)',
+          settings: 'linear-gradient(145deg,#94a3b8,#475569)',
+          ai: 'linear-gradient(145deg,#f472b6,#be185d)',
+          weather: 'linear-gradient(145deg,#fbbf24,#d97706)',
+          gifstudio: 'linear-gradient(145deg,#f472b6,#7c3aed)',
+        };
+        for (const app of V.APPS) {
+          const b = document.createElement('button');
+          b.className = 'dockapp';
+          b.dataset.app = app.id;
+          b.style.background = colors[app.id] || 'linear-gradient(145deg,#64748b,#334155)';
+          b.innerHTML = `${V.ICONS[app.icon]}<span class="tip">${esc(app.name)}</span><i class="ind"></i>`;
+          b.addEventListener('click', () => {
+            if (app.id === 'home') showHome();
+            else toggleApp(app.id);
+          });
+          wrap.appendChild(b);
+        }
+      }
+
+      function toggleApp(appId) {
+        const w = wins.get(appId);
+        if (!w) return openApp(appId);
+        if (w.el.classList.contains('min')) { w.el.classList.remove('min'); setActiveTask(appId); }
+        else if (activeApp() === appId) { w.el.classList.add('min'); setActiveTask(activeApp()); }
+        else { w.el.style.zIndex = zTop(); setActiveTask(appId); }
+      }
+
+      function setActiveTask(appId) {
+        document.querySelectorAll('.dockapp').forEach((b) => {
+          const w = wins.get(b.dataset.app);
+          b.classList.toggle('open', !!w && !w.el.classList.contains('min'));
+          b.classList.toggle('active', b.dataset.app === appId);
+        });
+      }
+      function showHome() {
+        for (const [, w] of wins) w.el.classList.add('min');
+        setActiveTask('home');
+      }
+      function activeApp() {
+        let best = null, bz = -1;
+        for (const [id, w] of wins) {
+          if (w.el.classList.contains('min')) continue;
+          const z = +w.el.style.zIndex || 0;
+          if (z > bz) { bz = z; best = id; }
+        }
+        return best || 'home';
+      }
+
+      function openApp(appId, params = {}) {
+        if (appId === 'home') return showHome();
+        const app = V.APPS.find((a) => a.id === appId);
+        if (!app) return;
+        if (wins.has(appId)) {
+          const w = wins.get(appId);
+          w.el.classList.remove('min');
+          w.el.style.zIndex = zTop();
+          setActiveTask(appId);
+          return w;
+        }
+        const el = document.createElement('section');
+        el.className = 'win';
+        const mobile = window.innerWidth < 820;
+        const W = Math.min(window.innerWidth * 0.9, 1180);
+        const H = Math.min(window.innerHeight * 0.86, 800);
+        el.style.width = (mobile ? '100vw' : W + 'px');
+        el.style.height = (mobile ? 'calc(100vh - 78px)' : H + 'px');
+        el.style.left = mobile ? '0' : Math.max(8, (window.innerWidth - W) / 2 + (Math.random() * 40 - 20)) + 'px';
+        el.style.top = mobile ? '0' : Math.max(8, (window.innerHeight - H - 68) / 2 + (Math.random() * 30 - 15)) + 'px';
+        el.style.zIndex = zTop();
+
+        let src = app.url || 'about:blank';
+        if (params && Object.keys(params).length) {
+          const q = new URLSearchParams();
+          for (const [k, v] of Object.entries(params)) if (v != null) q.set(k, typeof v === 'object' ? JSON.stringify(v) : v);
+          src += (src.includes('?') ? '&' : '?') + q.toString();
+        }
+        el.innerHTML = `
+          <header class="win-head">
+            <span class="wicon">${V.ICONS[app.icon]}</span>
+            <b>${esc(app.name)}</b>
+            <div class="wact">
+              <button class="wbtn min" title="Minimize">&ndash;</button>
+              <button class="wbtn maxb" title="Maximize">&#9633;</button>
+              <button class="wbtn close" title="Close">&times;</button>
+            </div>
+          </header>
+          <iframe src="${esc(src)}" allow="autoplay; fullscreen; gamepad; clipboard-read; clipboard-write; microphone; camera" allowfullscreen></iframe>
+          <div class="wload"><div class="spinner"></div></div>
+        `;
+        $('#windows').appendChild(el);
+        const frame = $('iframe', el);
+        frame.addEventListener('load', () => { $('.wload', el)?.classList.add('gone'); setTimeout(() => $('.wload', el)?.remove(), 350); });
+
+        const w = { el, iframe: frame, maximized: mobile };
+        if (mobile) el.classList.add('max');
+        wins.set(appId, w);
+        setActiveTask(appId);
+        $('.close', el).addEventListener('click', () => closeApp(appId));
+        $('.min', el).addEventListener('click', () => { el.classList.add('min'); setActiveTask(activeApp()); });
+        $('.maxb', el).addEventListener('click', () => toggleMax(w));
+        el.addEventListener('pointerdown', () => { el.style.zIndex = zTop(); setActiveTask(appId); }, true);
+        $('.win-head', el).addEventListener('dblclick', () => toggleMax(w));
+        dragify(el, $('.win-head', el), w);
+        return w;
+      }
+
+      function toggleMax(w) { w.maximized = !w.maximized; w.el.classList.toggle('max', w.maximized); }
+
+      function closeApp(appId) {
+        const w = wins.get(appId);
+        if (!w) return;
+        w.iframe.src = 'about:blank';
+        w.el.remove();
+        wins.delete(appId);
+        setActiveTask(activeApp());
+      }
+
+      function dragify(el, handle, w) {
+        let sx, sy, ox, oy, drag = false;
+        handle.addEventListener('pointerdown', (e) => {
+          if (e.target.closest('.wbtn')) return;
+          if (w.maximized) toggleMax(w);
+          drag = true; sx = e.clientX; sy = e.clientY; ox = el.offsetLeft; oy = el.offsetTop;
+          handle.setPointerCapture(e.pointerId);
+        });
+        handle.addEventListener('pointermove', (e) => {
+          if (!drag) return;
+          el.style.left = Math.min(window.innerWidth - 80, Math.max(-el.offsetWidth + 120, ox + e.clientX - sx)) + 'px';
+          el.style.top = Math.min(window.innerHeight - 60, Math.max(0, oy + e.clientY - sy)) + 'px';
+        });
+        handle.addEventListener('pointerup', () => (drag = false));
+      }
+
+      window.VeloraShell = { openApp, closeApp };
+
+      window.addEventListener('message', (e) => {
+        const d = e.data;
+        if (!d || d.__lunora !== true) return;
+        if (d.type === 'openApp') openApp(d.app, d.params || {});
+        if (d.type === 'closeWindow') closeApp(d.app);
+        if (d.type === 'settingsChanged') { applyWallpaper(); }
+        if (d.type === 'lock') showLock();
+      });
+
+      /* ================= palette ================= */
+      const pal = $('#palette'), palInput = $('#pal-input'), palList = $('#pal-list');
+      let palSel = 0;
+      function palItems(q) {
+        const apps = V.APPS.filter((a) => a.id !== 'home').map((a) => ({ label: a.name, kind: 'app', icon: a.icon, run: () => openApp(a.id) }));
+        const links = V.QUICK_LINKS.map((l) => ({ label: l.name, kind: 'site', icon: null, run: () => openApp('browser', { url: l.url }) }));
+        const actions = [
+          { label: 'Change wallpaper', kind: 'action', icon: 'settings', run: () => openApp('settings', { section: 'appearance' }) },
+          { label: 'Tab cloak', kind: 'action', icon: 'settings', run: () => openApp('settings', { section: 'cloak' }) },
+          { label: 'Panic key', kind: 'action', icon: 'settings', run: () => openApp('settings', { section: 'panic' }) },
+          { label: 'Browser engine', kind: 'action', icon: 'browser', run: () => openApp('settings', { section: 'engine' }) },
+          { label: 'Lock screen', kind: 'action', icon: 'home', run: showLock },
+          { label: 'Weather', kind: 'action', icon: 'browser', run: () => openApp('weather') },
+          { label: 'Minimize everything', kind: 'action', icon: 'home', run: showHome },
+        ];
+        const all = [...apps, ...actions, ...links];
+        if (!q) return all.slice(0, 9);
+        const s = q.toLowerCase();
+        const filtered = all.filter((x) => x.label.toLowerCase().includes(s));
+        if (/^(https?:\/\/)?([\w-]+\.)+[a-z]{2,}/i.test(q) || q.includes(' ')) {
+          const isUrl = !q.includes(' ');
+          filtered.unshift({ label: isUrl ? 'Go to ' + q : 'Search "' + q + '"', kind: isUrl ? 'url' : 'search', icon: 'browser', run: () => goSearch(q) });
+        }
+        return filtered.slice(0, 10);
+      }
+      function palRender() {
+        const items = palItems(palInput.value.trim());
+        palList.textContent = '';
+        items.forEach((it, i) => {
+          const d = document.createElement('div');
+          d.className = 'pitem' + (i === palSel ? ' sel' : '');
+          d.innerHTML = `${it.icon ? V.ICONS[it.icon] : '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/></svg>'}<b>${esc(it.label)}</b><small>${it.kind}</small>`;
+          d.addEventListener('click', () => { palClose(); it.run(); });
+          palList.appendChild(d);
+        });
+        return items;
+      }
+      function palOpen() { pal.classList.add('open'); palInput.value = ''; palSel = 0; palRender(); palInput.focus(); }
+      function palClose() { pal.classList.remove('open'); }
+      pal.addEventListener('click', (e) => { if (e.target === pal) palClose(); });
+      palInput.addEventListener('input', () => { palSel = 0; palRender(); });
+      palInput.addEventListener('keydown', (e) => {
+        const items = palRender();
+        if (e.key === 'ArrowDown') { palSel = Math.min(palSel + 1, items.length - 1); palRender(); e.preventDefault(); }
+        else if (e.key === 'ArrowUp') { palSel = Math.max(palSel - 1, 0); palRender(); e.preventDefault(); }
+        else if (e.key === 'Enter') { const it = items[palSel]; palClose(); if (it) it.run(); }
+        else if (e.key === 'Escape') palClose();
+      });
+      window.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); pal.classList.contains('open') ? palClose() : palOpen(); }
+      });
+
+      /* ================= context menu ================= */
+      const ctx = $('#ctx');
+      const ctxItems = [
+        { label: 'Change wallpaper', icon: 'settings', run: () => openApp('settings', { section: 'appearance' }) },
+        { label: 'Tab cloak', icon: 'settings', run: () => openApp('settings', { section: 'cloak' }) },
+        { label: 'Lock screen', icon: 'home', run: showLock },
+        { label: 'Spotlight', icon: 'home', run: palOpen },
+        { label: 'About lunora', icon: 'ai', run: () => openApp('settings', { section: 'about' }) },
+      ];
+      document.addEventListener('contextmenu', (e) => {
+        if (e.target.closest('.win, #dock, input, #palette, .lock')) return;
+        e.preventDefault();
+        ctx.innerHTML = '';
+        for (const it of ctxItems) {
+          const d = document.createElement('div');
+          d.className = 'citem';
+          d.innerHTML = `${V.ICONS[it.icon]}${esc(it.label)}`;
+          d.addEventListener('click', () => { ctx.classList.remove('open'); it.run(); });
+          ctx.appendChild(d);
+        }
+        ctx.style.left = Math.min(e.clientX, innerWidth - 210) + 'px';
+        ctx.style.top = Math.min(e.clientY, innerHeight - ctxItems.length * 40 - 20) + 'px';
+        ctx.classList.add('open');
+      });
+      window.addEventListener('pointerdown', (e) => { if (!e.target.closest('#ctx')) ctx.classList.remove('open'); });
+
+      /* ================= panic ================= */
+      function applyPanicBtn() {
+        const p = V.getSettings().panic;
+        $('#panic-btn').style.display = p.on && p.showBtn ? 'grid' : 'none';
+      }
+      $('#panic-btn').addEventListener('click', () => V.panicGo());
+
+      /* ================= notifications (work everywhere, like a phone) ================= */
+      let notifWired = false;
+      const userCache = new Map();
+      async function userPublic(u) {
+        if (userCache.has(u)) return userCache.get(u);
+        try { const r = await LunoraAPI.api('/api/user/' + encodeURIComponent(u)); if (r.user) { userCache.set(u, r.user); return r.user; } } catch {}
+        return { u, display: u };
+      }
+      function ding() {
+        try {
+          const ctx = new (window.AudioContext || window.webkitAudioContext)();
+          const o = ctx.createOscillator(), g = ctx.createGain();
+          o.frequency.value = 880; o.type = 'sine';
+          g.gain.setValueAtTime(0.05, ctx.currentTime);
+          g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+          o.connect(g); g.connect(ctx.destination); o.start(); o.stop(ctx.currentTime + 0.3);
+          setTimeout(() => ctx.close(), 500);
+        } catch {}
+      }
+      function messengerHidden() {
+        const w = wins.get('messenger');
+        return !w || w.el.classList.contains('min');
+      }
+      function showNotify({ avaUrl, letter, title, body, onClick }) {
+        const d = document.createElement('div');
+        d.className = 'notif';
+        d.innerHTML = `<div class="nava">${avaUrl ? '<img src="' + avaUrl + '">' : esc(letter || '?')}</div>
+          <div class="ntxt"><b>${esc(title)}</b><p>${esc(body || '')}</p></div>
+          <span class="napp">lunora</span>`;
+        d.addEventListener('click', () => { d.remove(); onClick && onClick(); });
+        $('#notifs').appendChild(d);
+        while ($('#notifs').children.length > 4) $('#notifs').firstChild.remove();
+        setTimeout(() => { d.classList.add('out'); setTimeout(() => d.remove(), 350); }, 5000);
+      }
+      function messengerPost(msg, tries = 12) {
+        const w = wins.get('messenger');
+        if (!w || !w.iframe.contentWindow) { if (tries > 0) setTimeout(() => messengerPost(msg, tries - 1), 300); return; }
+        w.iframe.contentWindow.postMessage({ __lunora: true, ...msg }, '*');
+      }
+      let lastIncoming = null;
+      function showCallBanner(m) {
+        lastIncoming = m;
+        const b = $('#callnotif');
+        userPublic(m.from).then((p) => {
+          b.innerHTML = `<div class="nava">${p && p.avatarId ? '<img src="/files/' + p.avatarId + '">' : esc((m.from)[0].toUpperCase())}</div>
+            <div class="ntxt"><b>${esc(p?.display || m.from)}</b><span>incoming ${m.mode === 'video' ? 'video' : 'voice'} call</span></div>
+            <button class="acc" id="cn-acc">accept</button>
+            <button class="dec" id="cn-dec">decline</button>`;
+          b.classList.add('open');
+          $('#cn-acc').addEventListener('click', () => {
+            b.classList.remove('open');
+            lastIncoming = null;
+            openApp('messenger'); // the server re-delivers the pending offer once the messenger connects
+            // keep nudging until the messenger app has booted — it auto-answers the pending call
+            let tries = 0;
+            const iv = setInterval(() => {
+              tries++;
+              messengerPost({ type: 'incomingCall', from: m.from, mode: m.mode, sdp: m.sdp, autoAccept: true });
+              if (tries >= 12) clearInterval(iv);
+            }, 400);
+          });
+          $('#cn-dec').addEventListener('click', () => {
+            b.classList.remove('open');
+            LunoraAPI.sendRaw({ type: 'call', to: m.from, kind: 'end', reason: 'declined' });
+            lastIncoming = null;
+          });
+        });
+        setTimeout(() => { if (lastIncoming === m) { b.classList.remove('open'); LunoraAPI.sendRaw({ type: 'call', to: m.from, kind: 'end', reason: 'missed' }); lastIncoming = null; } }, 45000);
+      }
+      function wireNotifications() {
+        if (notifWired || !LunoraAPI.auth.token()) return;
+        notifWired = true;
+        LunoraAPI.onLive(async (m) => {
+          if (m.type === 'message') {
+            if (!messengerHidden()) return; // messenger is open — it shows the message live
+            if (m.msg.from === LunoraAPI.auth.username()) return;
+            const p = await userPublic(m.msg.from);
+            const where = m.scope === 'channel' ? '#' + m.key : m.scope === 'group' ? 'group chat' : 'dm';
+            showNotify({
+              avaUrl: p?.avatarId ? '/files/' + p.avatarId : null,
+              letter: (m.msg.from)[0].toUpperCase(),
+              title: (p?.display || m.msg.from) + ' · ' + where,
+              body: m.msg.text || '📎 sent an attachment',
+              onClick: () => {
+                openApp('messenger');
+                const peer = m.scope === 'dm' ? m.key.split('|').find((x) => x !== LunoraAPI.auth.username()) : null;
+                setTimeout(() => messengerPost(m.scope === 'dm' ? { type: 'openConv', kind: 'dm', peer } : { type: 'openConv', kind: m.scope, key: m.key }), 1200);
+              },
+            });
+            ding();
+          }
+          if (m.type === 'call' && m.kind === 'offer') {
+            if (messengerHidden()) showCallBanner(m); // messenger open → it rings there
+          }
+          if (m.type === 'friend:request') {
+            showNotify({
+              avaUrl: m.from?.avatarId ? '/files/' + m.from.avatarId : null,
+              letter: (m.from?.u || '?')[0].toUpperCase(),
+              title: '👋 contact request',
+              body: (m.from?.display || m.from?.u) + ' wants to be your contact',
+              onClick: () => openApp('messenger'),
+            });
+            ding();
+          }
+        });
+      }
+
+      /* ================= boot apps ================= */
+      dockButtons();
+      setActiveTask('home');
+      applyWallpaper();
+      applyPanicBtn();
+
+      const sp = new URLSearchParams(location.search);
+      if (sp.get('app')) openApp(sp.get('app'), sp.get('url') ? { url: sp.get('url') } : {});
+    })();
+  </script>
+</body>
+</html>

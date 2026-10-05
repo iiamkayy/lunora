@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>GIF Studio</title>
+  <link rel="stylesheet" href="shared.css" />
+  <style>
+    html,body{overflow-y:auto}
+    .app{min-height:100vh;padding:clamp(18px,4vw,44px);background:radial-gradient(50% 45% at 25% 20%, #0c2333, transparent 62%), radial-gradient(45% 45% at 80% 80%, #0a2b26, transparent 60%), #05090c}
+    .wrap{max-width:1080px;margin:0 auto}
+    h1{margin:0 0 4px;font-size:24px;font-weight:900}
+    .sub{color:var(--muted);font-size:12.5px;margin-bottom:24px}
+    .tabs{display:flex;gap:8px;margin-bottom:22px;flex-wrap:wrap}
+    .tab{height:36px;padding:0 16px;border-radius:11px;border:1px solid var(--line);background:transparent;color:var(--muted);font-weight:800;font-size:12.5px;cursor:pointer;transition:.15s}
+    .tab:hover{color:var(--text);border-color:var(--line2)}
+    .tab.on{background:var(--acc);border-color:transparent;color:#06130d}
+    .pane{display:none}
+    .pane.on{display:block;animation:fadein .2s ease}
+    .card{background:var(--glass);border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:16px}
+    .card h3{margin:0 0 12px;font-size:14px;font-weight:900}
+    .frames{display:flex;gap:8px;overflow-x:auto;padding:4px;min-height:110px}
+    .frame{position:relative;flex:0 0 auto;width:120px;height:90px;border-radius:10px;overflow:hidden;border:1px solid var(--line)}
+    .frame img{width:100%;height:100%;object-fit:cover}
+    .frame .rm{position:absolute;top:4px;right:4px;width:20px;height:20px;border-radius:6px;border:0;background:rgba(0,0,0,.7);color:#fff;font-weight:900;cursor:pointer;font-size:11px}
+    .frame .idx{position:absolute;left:4px;top:4px;background:rgba(0,0,0,.7);color:#fff;font-size:9px;font-weight:900;padding:2px 6px;border-radius:5px}
+    .addframe{flex:0 0 auto;width:120px;height:90px;border:1px dashed var(--line2);border-radius:10px;display:grid;place-items:center;color:var(--dim);cursor:pointer;font-size:22px;background:rgba(255,255,255,.02)}
+    .addframe:hover{border-color:var(--acc-line);color:var(--acc)}
+    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:14px 0}
+    .preview{display:grid;place-items:center;min-height:180px;background:rgba(0,0,0,.3);border-radius:12px;border:1px solid var(--line);padding:12px}
+    .preview img{max-width:100%;max-height:260px;border-radius:10px}
+    .ggrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+    .gg{position:relative;border-radius:12px;overflow:hidden;border:1px solid var(--line);cursor:pointer;background:#000}
+    .gg img{width:100%;display:block}
+    .gg .gact{position:absolute;inset:auto 0 0 0;display:flex;gap:6px;padding:8px;background:linear-gradient(transparent,rgba(0,0,0,.85));opacity:0;transition:.15s}
+    .gg:hover .gact{opacity:1}
+    .gg .gact button{flex:1;border:0;border-radius:8px;padding:6px 0;font-size:10.5px;font-weight:900;cursor:pointer;background:var(--acc);color:#06130d}
+    .gg .gact button.fav{background:rgba(255,255,255,.15);color:#fff}
+    .gg .star{position:absolute;top:6px;right:6px;font-size:14px;filter:drop-shadow(0 1px 3px rgba(0,0,0,.8))}
+    .empty{padding:30px;text-align:center;color:var(--dim);font-size:12px;font-weight:700}
+    .steplist{color:var(--muted);font-size:11.5px;line-height:1.7;margin:0 0 12px}
+    .webcambox{width:100%;max-width:480px;aspect-ratio:4/3;border-radius:12px;background:#000;border:1px solid var(--line);overflow:hidden;margin-bottom:10px}
+    .webcambox video{width:100%;height:100%;object-fit:cover}
+    .flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="wrap">
+      <h1>GIF Studio</h1>
+      <div class="sub">make your own gifs, search tenor-style, and ⭐ favorite them so they're always one tap away in messenger.</div>
+
+      <div class="tabs">
+        <button class="tab on" data-t="create">🎨 create</button>
+        <button class="tab" data-t="webcam">📹 webcam gif</button>
+        <button class="tab" data-t="search">🔍 search gifs</button>
+        <button class="tab" data-t="favs">⭐ my favorites</button>
+      </div>
+
+      <!-- create from images -->
+      <div class="pane on" data-p="create">
+        <div class="card">
+          <h3>Turn images into a GIF</h3>
+          <p class="steplist">1. add images in order (they become the gif frames) → 2. pick a speed → 3. create → 4. send it or ⭐ it</p>
+          <div class="frames" id="frames">
+            <div class="addframe" id="add-img">＋</div>
+          </div>
+          <input type="file" id="img-file" accept="image/*" multiple hidden />
+          <div class="row">
+            <label class="vlabel" style="margin:0">speed</label>
+            <select class="vinput" id="delay" style="width:130px"><option value="120">fast (120ms)</option><option value="220" selected>normal (220ms)</option><option value="400">slow (400ms)</option></select>
+            <button class="vbtn acc" id="make-gif">✨ create gif</button>
+          </div>
+          <div class="preview" id="preview1"><span class="empty">your gif appears here</span></div>
+          <div class="row" id="act1" style="display:none">
+            <button class="vbtn" id="dl-gif">⬇ download</button>
+            <button class="vbtn acc" id="send-gif">📤 send to a contact</button>
+            <button class="vbtn" id="fav-gif">⭐ favorite</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- webcam gif -->
+      <div class="pane" data-p="webcam">
+        <div class="card">
+          <h3>Record a quick gif with your webcam</h3>
+          <p class="steplist">allow the camera → hit record — it grabs 10 snapshots → create. no camera? use the create tab instead.</p>
+          <div class="webcambox"><video id="cam" autoplay playsinline muted></video></div>
+          <div class="row">
+            <button class="vbtn" id="cam-start">📹 start camera</button>
+            <button class="vbtn acc" id="cam-record" disabled>⏺ record 10 frames</button>
+            <span class="vlabel" id="cam-status" style="margin:0"></span>
+          </div>
+          <div class="frames" id="wframes"></div>
+          <div class="preview" id="preview2"><span class="empty">your gif appears here</span></div>
+          <div class="row" id="act2" style="display:none">
+            <button class="vbtn" id="dl-gif2">⬇ download</button>
+            <button class="vbtn acc" id="send-gif2">📤 send to a contact</button>
+            <button class="vbtn" id="fav-gif2">⭐ favorite</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- search -->
+      <div class="pane" data-p="search">
+        <div class="card">
+          <input class="vinput" id="gif-q" placeholder="search gifs… (blank = trending)" />
+        </div>
+        <div class="ggrid" id="sgrid"><div class="empty">loading…</div></div>
+      </div>
+
+      <!-- favorites -->
+      <div class="pane" data-p="favs">
+        <div class="card" style="display:flex;justify-content:space-between;align-items:center">
+          <h3 style="margin:0">⭐ your favorites — also available in the messenger gif picker</h3>
+          <button class="vbtn sm" id="fav-refresh">refresh</button>
+        </div>
+        <div class="ggrid" id="fgrid"><div class="empty">loading…</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- send picker -->
+  <div class="vmodal" id="sendmodal">
+    <div class="box">
+      <h3 style="margin:0 0 12px;font-size:16px;font-weight:900">send gif to…</h3>
+      <div id="send-list" style="display:flex;flex-direction:column;gap:6px;max-height:280px;overflow:auto"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px"><button class="vbtn" id="send-close">cancel</button></div>
+    </div>
+  </div>
+
+  <script src="shared.js"></script>
+  <script src="api.js"></script>
+  <script>
+    (() => {
+      'use strict';
+      const $ = (s) => document.querySelector(s);
+      const V = window.Velora;
+      const API = window.LunoraAPI;
+      const { esc, toast } = V;
+
+      if (!API.auth.token()) { document.body.innerHTML = '<div style="display:grid;place-items:center;height:100vh;color:var(--muted);font-weight:700">sign in to lunora first 🔒</div>'; return; }
+
+      /* tabs */
+      document.querySelectorAll('.tab').forEach((t) => t.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach((x) => x.classList.toggle('on', x === t));
+        document.querySelectorAll('.pane').forEach((p) => p.classList.toggle('on', p.dataset.p === t.dataset.t));
+        if (t.dataset.t === 'favs') loadFavs();
+        if (t.dataset.t === 'search') loadSearch($('#gif-q').value.trim());
+      }));
+
+      /* ============ gif encoding (gif.js) ============ */
+      let encoder = null;
+      function makeGif(images, delay, onProgress) {
+        return new Promise((resolve, reject) => {
+          if (!window.GIF) {
+            const sc = document.createElement('script');
+            sc.src = 'vendor/gif.js';
+            sc.onload = () => run();
+            sc.onerror = () => reject(new Error('gif encoder failed to load'));
+            document.head.appendChild(sc);
+          } else run();
+          function run() {
+            const first = images[0];
+            encoder = new GIF({ workers: 2, quality: 10, width: first.width, height: first.height, workerScript: 'gif.worker.js' });
+            for (const img of images) encoder.addFrame(img, { delay });
+            encoder.on('progress', (p) => onProgress && onProgress(Math.round(p * 100)));
+            encoder.on('finished', (blob) => resolve(blob));
+            encoder.on('abort', () => reject(new Error('aborted')));
+            encoder.render();
+          }
+        });
+      }
+      const blobToDataURL = (b) => new Promise((r) => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(b); });
+
+      function showResult(blob, previewEl, actEl) {
+        blobToDataURL(blob).then((url) => {
+          const p = $(previewEl);
+          p.innerHTML = '<img src="' + url + '">';
+          $(actEl).style.display = 'flex';
+          const dl = $(actEl.replace('act', 'dl-gif').replace('dl-gif', 'dl-gif')); // keep ids stable
+          const download = $(previewEl === '#preview1' ? '#dl-gif' : '#dl-gif2');
+          const send = $(previewEl === '#preview1' ? '#send-gif' : '#send-gif2');
+          const fav = $(previewEl === '#preview1' ? '#fav-gif' : '#fav-gif2');
+          download.onclick = () => { const a = document.createElement('a'); a.href = url; a.download = 'lunora.gif'; a.click(); };
+          send.onclick = () => sendModal(url);
+          fav.onclick = async () => { try { await API.api('/api/favs', { body: { url, desc: 'my gif' } }); toast('⭐ saved to favorites'); } catch (e) { toast(e.message); } };
+        });
+      }
+
+      /* ============ create from images ============ */
+      let frames = [];
+      $('#add-img').addEventListener('click', () => $('#img-file').click());
+      $('#img-file').addEventListener('change', (e) => {
+        for (const f of e.target.files) {
+          const fr = new FileReader();
+          fr.onload = () => {
+            frames.push(fr.result);
+            const d = document.createElement('div');
+            d.className = 'frame';
+            d.innerHTML = '<img src="' + fr.result + '"><span class="idx">#' + frames.length + '</span><button class="rm">✕</button>';
+            d.querySelector('.rm').addEventListener('click', () => { d.remove(); frames = frames.filter((x) => x !== fr.result); reindex(); });
+            $('#frames').insertBefore(d, $('#add-img'));
+          };
+          fr.readAsDataURL(f);
+        }
+        e.target.value = '';
+      });
+      function reindex() {
+        [...$('#frames').querySelectorAll('.frame')].forEach((f, i) => { const idx = f.querySelector('.idx'); if (idx) idx.textContent = '#' + (i + 1); });
+      }
+      $('#make-gif').addEventListener('click', async () => {
+        if (frames.length < 2) return toast('add at least 2 images');
+        $('#preview1').innerHTML = '<div class="empty">encoding… <b id="pct">0%</b></div>';
+        $('#act1').style.display = 'none';
+        try {
+          const imgs = await Promise.all(frames.map((src) => new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = src; })));
+          const w = Math.min(360, imgs[0].width), scale = w / imgs[0].width;
+          const canvases = imgs.map((img) => {
+            const c = document.createElement('canvas');
+            c.width = w; c.height = Math.round(img.height * scale);
+            c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+            return c;
+          });
+          const blob = await makeGif(canvases, +$('#delay').value, (p) => { const el = $('#pct'); if (el) el.textContent = p + '%'; });
+          showResult(blob, '#preview1', '#act1');
+        } catch (e) { toast(e.message); $('#preview1').innerHTML = '<span class="empty">encoding failed</span>'; }
+      });
+
+      /* ============ webcam gif ============ */
+      let camStream = null, wframes = [];
+      $('#cam-start').addEventListener('click', async () => {
+        try {
+          camStream = await navigator.mediaDevices.getUserMedia({ video: true });
+          $('#cam').srcObject = camStream;
+          $('#cam-record').disabled = false;
+          $('#cam-status').textContent = 'camera ready';
+        } catch (e) { $('#cam-status').textContent = 'camera unavailable — allow permission or use the create tab'; }
+      });
+      $('#cam-record').addEventListener('click', () => {
+        if (!camStream) return;
+        wframes = [];
+        $('#wframes').innerHTML = '';
+        $('#cam-status').textContent = 'recording…';
+        const video = $('#cam');
+        let count = 0;
+        const iv = setInterval(() => {
+          const c = document.createElement('canvas');
+          c.width = 320; c.height = 240;
+          c.getContext('2d').drawImage(video, 0, 0, c.width, c.height);
+          const url = c.toDataURL('image/png');
+          wframes.push(c);
+          const d = document.createElement('div');
+          d.className = 'frame';
+          d.innerHTML = '<img src="' + url + '"><span class="idx">#' + wframes.length + '</span>';
+          $('#wframes').appendChild(d);
+          if (++count >= 10) {
+            clearInterval(iv);
+            $('#cam-status').textContent = 'captured 10 frames — hit create';
+            makeWgif();
+          }
+        }, 250);
+      });
+      async function makeWgif() {
+        $('#preview2').innerHTML = '<div class="empty">encoding…</div>';
+        try {
+          const blob = await makeGif(wframes, 200, null);
+          showResult(blob, '#preview2', '#act2');
+        } catch (e) { toast(e.message); }
+      }
+
+      /* ============ search ============ */
+      async function loadSearch(q) {
+        const grid = $('#sgrid');
+        grid.innerHTML = '<div class="empty">loading…</div>';
+        try {
+          const r = await API.api('/api/gifs?q=' + encodeURIComponent(q || ''));
+          if (!(r.gifs || []).length) { grid.innerHTML = '<div class="empty">nothing found</div>'; return; }
+          grid.innerHTML = '';
+          for (const g of r.gifs) grid.appendChild(gifCard(g));
+        } catch { grid.innerHTML = '<div class="empty">gif search unavailable right now</div>'; }
+      }
+      $('#gif-q').addEventListener('keydown', (e) => { if (e.key === 'Enter') loadSearch(e.target.value.trim()); });
+
+      /* ============ favorites ============ */
+      async function loadFavs() {
+        const grid = $('#fgrid');
+        grid.innerHTML = '<div class="empty">loading…</div>';
+        try {
+          const r = await API.api('/api/favs');
+          if (!(r.favs || []).length) { grid.innerHTML = '<div class="empty">no favorites yet — ⭐ gifs from the search tab or your creations</div>'; return; }
+          grid.innerHTML = '';
+          for (const g of r.favs) {
+            const card = gifCard(g);
+            const rm = document.createElement('button');
+            rm.className = 'vbtn sm danger'; rm.textContent = 'remove';
+            rm.addEventListener('click', async (e) => { e.stopPropagation(); await API.api('/api/favs/delete', { body: { id: g.id } }); loadFavs(); });
+            card.querySelector('.gact').appendChild(rm);
+            grid.appendChild(card);
+          }
+        } catch { grid.innerHTML = '<div class="empty">could not load favorites</div>'; }
+      }
+      $('#fav-refresh').addEventListener('click', loadFavs);
+
+      function gifCard(g) {
+        const d = document.createElement('div');
+        d.className = 'gg';
+        d.innerHTML = '<img src="' + esc(g.url) + '" loading="lazy"><span class="star">⭐</span><div class="gact"><button class="snd">📤 send</button><button class="fav">❤️ save</button></div>';
+        d.querySelector('.snd').addEventListener('click', () => sendModal(g.url));
+        d.querySelector('.fav').addEventListener('click', async () => { try { await API.api('/api/favs', { body: { url: g.url, desc: g.desc || '' } }); toast('⭐ saved to favorites'); } catch (e) { toast(e.message); } });
+        return d;
+      }
+
+      /* ============ send modal ============ */
+      function sendModal(url) {
+        const wrap = $('#sendmodal');
+        const list = $('#send-list');
+        list.innerHTML = '<div class="empty">loading contacts…</div>';
+        wrap.classList.add('open');
+        (async () => {
+          const fr = await API.api('/api/friends').catch(() => ({ accepted: [] }));
+          if (!(fr.accepted || []).length) { list.innerHTML = '<div class="empty">no contacts yet — add some in messenger first</div>'; return; }
+          list.innerHTML = '';
+          for (const u of fr.accepted) {
+            const b = document.createElement('button');
+            b.className = 'vbtn'; b.style.cssText = 'justify-content:flex-start';
+            b.textContent = '@' + u.u + (u.display && u.display !== u.u ? ' (' + u.display + ')' : '');
+            b.addEventListener('click', async () => {
+              try { await API.api('/api/dm/' + u.u, { body: { gif: url, text: '' } }); toast('gif sent to @' + u.u + ' ✓'); wrap.classList.remove('open'); }
+              catch (e) { toast(e.message); }
+            });
+            list.appendChild(b);
+          }
+        })();
+      }
+      $('#send-close').addEventListener('click', () => $('#sendmodal').classList.remove('open'));
+      $('#sendmodal').addEventListener('click', (e) => { if (e.target === $('#sendmodal')) $('#sendmodal').classList.remove('open'); });
+
+      loadSearch('');
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,526 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Settings</title>
+  <link rel="stylesheet" href="shared.css" />
+  <style>
+    html,body{height:100%;overflow:hidden}
+    .app{display:flex;height:100vh;background:#0a0d0e}
+    .nav{width:210px;flex:0 0 210px;background:#0b0e10;border-right:1px solid var(--line);padding:16px 10px;display:flex;flex-direction:column;gap:3px;overflow-y:auto}
+    .nav .brand{display:flex;align-items:center;gap:10px;padding:6px 10px 16px}
+    .nav .brand .lgo{width:36px;height:36px;border-radius:12px;background:var(--acc-dim);border:1px solid var(--acc-line);display:grid;place-items:center;color:var(--acc);font-family:var(--display);font-weight:700;font-size:17px}
+    .nav .brand b{font-size:14px;font-weight:900}
+    .nav .brand span{display:block;font-size:9px;color:var(--dim);font-weight:800;text-transform:uppercase;letter-spacing:.1em}
+    .navitem{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;cursor:pointer;color:var(--muted);font-size:13px;font-weight:700;transition:.13s;border:1px solid transparent}
+    .navitem svg{width:16px;height:16px}
+    .navitem:hover{background:rgba(255,255,255,.05);color:var(--text)}
+    .navitem.on{background:var(--acc-dim);border-color:var(--acc-line);color:var(--acc)}
+    .main{flex:1;overflow-y:auto;padding:22px clamp(16px,4vw,44px);min-width:0}
+    .sec{max-width:720px;display:none;animation:fadein .2s ease}
+    .sec.on{display:block}
+    .sec h2{margin:0 0 4px;font-size:20px;font-weight:900;letter-spacing:-.02em}
+    .sec .desc{color:var(--muted);font-size:12.5px;margin-bottom:20px;line-height:1.5}
+    .panel{background:var(--glass);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:16px}
+    .panel h3{margin:0 0 12px;font-size:13.5px;font-weight:800}
+    .row{display:flex;align-items:center;gap:12px;margin:10px 0}
+    .row .lbl{flex:1;min-width:0}
+    .row .lbl b{display:block;font-size:13px;font-weight:700}
+    .row .lbl span{font-size:11.5px;color:var(--dim)}
+    .wgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px}
+    .wcard{height:76px;border-radius:11px;border:2px solid var(--line);cursor:pointer;transition:.15s;position:relative;overflow:hidden}
+    .wcard:hover{transform:translateY(-2px);border-color:var(--line2)}
+    .wcard.on{border-color:var(--acc)}
+    .wcard span{position:absolute;left:8px;bottom:6px;font-size:10px;font-weight:800;color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.8)}
+    .wcard.aurora{background:radial-gradient(60% 80% at 25% 30%, rgba(126,240,192,.35), transparent 60%), radial-gradient(50% 60% at 75% 30%, rgba(90,160,255,.3), transparent 60%), #0a0f11}
+    .cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+    .ccard{display:flex;align-items:center;gap:10px;padding:11px;border-radius:11px;border:1px solid var(--line);background:rgba(255,255,255,.03);cursor:pointer;transition:.14s}
+    .ccard:hover{border-color:var(--line2);transform:translateY(-1px)}
+    .ccard.on{border-color:var(--acc);background:var(--acc-dim)}
+    .ccard img{width:20px;height:20px;border-radius:5px;object-fit:contain;background:#fff3}
+    .ccard b{font-size:12px;font-weight:700}
+    .swatches{display:flex;gap:9px;flex-wrap:wrap}
+    .sw{width:34px;height:34px;border-radius:11px;cursor:pointer;border:2px solid transparent;transition:.14s}
+    .sw:hover{transform:scale(1.1)}
+    .sw.on{border-color:#fff}
+    .keycap{display:inline-flex;align-items:center;justify-content:center;min-width:52px;height:40px;padding:0 14px;border-radius:10px;border:1px solid var(--acc-line);background:var(--acc-dim);color:var(--acc);font-weight:900;font-size:14px;cursor:pointer;user-select:none}
+    .keycap.listen{animation:pulse 1s ease infinite}
+    @keyframes pulse{50%{box-shadow:0 0 0 5px var(--acc-dim)}}
+    .engcard{display:flex;gap:14px;align-items:flex-start;padding:15px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.03);cursor:pointer;transition:.14s;margin-bottom:10px}
+    .engcard:hover{border-color:var(--line2)}
+    .engcard.on{border-color:var(--acc);background:var(--acc-dim)}
+    .engcard .radio{width:18px;height:18px;border-radius:50%;border:2px solid var(--dim);margin-top:2px;flex:0 0 auto;position:relative}
+    .engcard.on .radio{border-color:var(--acc)}
+    .engcard.on .radio:after{content:"";position:absolute;inset:3px;border-radius:50%;background:var(--acc)}
+    .engcard b{font-size:13.5px;font-weight:800;display:flex;align-items:center;gap:8px}
+    .engcard p{margin:4px 0 0;font-size:11.5px;color:var(--muted);line-height:1.5}
+    .pill{font-size:9px;font-weight:900;padding:2px 7px;border-radius:6px;text-transform:uppercase;letter-spacing:.05em}
+    .pill.ok{background:rgba(126,240,192,.14);color:var(--acc);border:1px solid var(--acc-line)}
+    .pill.no{background:rgba(255,107,98,.12);color:var(--danger);border:1px solid rgba(255,107,98,.35)}
+    .aboutlogo{display:flex;align-items:center;gap:14px;margin-bottom:16px}
+    .aboutlogo .lgo{width:56px;height:56px;border-radius:18px;background:var(--acc-dim);border:1px solid var(--acc-line);display:grid;place-items:center;color:var(--acc);font-family:var(--display);font-weight:700;font-size:26px}
+    .credits{font-size:11.5px;color:var(--dim);line-height:1.7}
+    .filepick{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .fname{font-size:11px;color:var(--dim);font-weight:700}
+    @media (max-width:640px){ .nav{width:60px;flex-basis:60px} .nav .brand b,.nav .brand span,.navitem span{display:none} }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <nav class="nav">
+      <div class="brand"><div class="lgo">v</div><div><b>lunora</b><span>settings</span></div></div>
+      <div class="navitem on" data-s="appearance"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a9 9 0 1 0 9 9c0-.5-.4-1-1-1h-2a2 2 0 0 1-2-2V7a2 2 0 0 0-2-2h-2z"/><circle cx="7.5" cy="10.5" r="1"/><circle cx="12" cy="7.5" r="1"/><circle cx="16.5" cy="10.5" r="1"/></svg><span>appearance</span></div>
+      <div class="navitem" data-s="cloak"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6z"/><circle cx="12" cy="12" r="2.5"/></svg><span>tab cloak</span></div>
+      <div class="navitem" data-s="panic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg><span>panic key</span></div>
+      <div class="navitem" data-s="lock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10.5" width="16" height="10" rx="2.5"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/></svg><span>lock screen</span></div>
+      <div class="navitem" data-s="engine"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a13.5 13.5 0 0 1 0 18 13.5 13.5 0 0 1 0-18z"/></svg><span>browser engine</span></div>
+      <div class="navitem" data-s="data"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg><span>data</span></div>
+      <div class="navitem" data-s="about"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 16v-5"/><circle cx="12" cy="8" r=".5" fill="currentColor"/></svg><span>about</span></div>
+    </nav>
+
+    <main class="main" id="main">
+      <!-- ============ appearance ============ -->
+      <section class="sec on" data-s="appearance">
+        <h2>Appearance</h2>
+        <p class="desc">Make lunora yours. Pick a wallpaper, import your own image or a <b>live wallpaper (mp4/webm)</b>, and tune the vibe.</p>
+
+        <div class="panel">
+          <h3>Wallpaper</h3>
+          <div class="wgrid" id="wgrid">
+            <div class="wcard aurora" data-w="aurora"><span>aurora</span></div>
+            <div class="wcard" data-w="gradient:deep" style="background:radial-gradient(55% 60% at 25% 25%, #0c2333, transparent 62%), radial-gradient(60% 55% at 75% 70%, #0a2b26, transparent 60%), #05090c"><span>deep sea</span></div>
+            <div class="wcard" data-w="gradient:ember" style="background:radial-gradient(60% 70% at 20% 20%, #2b1220, transparent 60%), radial-gradient(50% 60% at 80% 30%, #331b0e, transparent 60%), #0a0708"><span>ember</span></div>
+            <div class="wcard" data-w="gradient:blossom" style="background:radial-gradient(55% 60% at 30% 30%, #2c1428, transparent 62%), radial-gradient(55% 55% at 75% 65%, #26102c, transparent 60%), #0c070c"><span>blossom</span></div>
+            <div class="wcard" data-w="gradient:forest" style="background:radial-gradient(60% 65% at 25% 30%, #0d2818, transparent 62%), radial-gradient(55% 55% at 75% 70%, #123322, transparent 60%), #060b08"><span>forest</span></div>
+            <div class="wcard" data-w="gradient:dusk" style="background:radial-gradient(50% 55% at 30% 25%, #241a33, transparent 62%), radial-gradient(55% 60% at 72% 72%, #0f2233, transparent 62%), #08070d"><span>dusk</span></div>
+          </div>
+          <div class="row" style="margin-top:16px">
+            <div class="filepick">
+              <button class="vbtn" id="pick-img">🖼 import image</button>
+              <button class="vbtn" id="pick-vid">🎬 import live wallpaper (mp4/webm)</button>
+              <span class="fname" id="wall-file-note">stored privately on this device</span>
+              <input type="file" id="file-img" accept="image/*" hidden />
+              <input type="file" id="file-vid" accept="video/mp4,video/webm" hidden />
+            </div>
+          </div>
+          <div class="row">
+            <input class="vinput" id="wall-url" placeholder="...or paste an image / video url" style="flex:1" />
+            <button class="vbtn" id="wall-url-go">apply</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3>Wallpaper tuning</h3>
+          <div class="row"><div class="lbl"><b>Dim</b><span>darken the wallpaper so text stays readable</span></div><input type="range" id="w-dim" min="0" max="80" style="width:180px" /></div>
+          <div class="row"><div class="lbl"><b>Blur</b><span>soften image / video wallpapers</span></div><input type="range" id="w-blur" min="0" max="30" style="width:180px" /></div>
+        </div>
+
+        <div class="panel">
+          <h3>Accent color</h3>
+          <div class="swatches" id="swatches"></div>
+        </div>
+      </section>
+
+      <!-- ============ cloak ============ -->
+      <section class="sec" data-s="cloak">
+        <h2>Tab Cloak</h2>
+        <p class="desc">Disguise this tab as something way more boring. The title and icon change instantly.</p>
+        <div class="panel">
+          <h3>Presets</h3>
+          <div class="cgrid" id="cloakgrid"></div>
+          <div style="margin-top:12px;display:flex;gap:8px"><button class="vbtn" id="cloak-off">remove cloak</button></div>
+        </div>
+        <div class="panel">
+          <h3>Custom cloak</h3>
+          <div class="row"><input class="vinput" id="ck-title" placeholder="tab title (e.g. Google Docs)" style="flex:1" /></div>
+          <div class="row"><input class="vinput" id="ck-icon" placeholder="favicon image url" style="flex:1" /></div>
+          <button class="vbtn acc" id="ck-apply">apply custom cloak</button>
+        </div>
+        <div class="panel">
+          <div class="row" style="margin:0">
+            <div class="lbl"><b>Auto-cloak when I switch tabs</b><span>disguises lunora the moment the tab loses focus</span></div>
+            <div class="vswitch" id="ck-auto"></div>
+          </div>
+        </div>
+        <div class="panel">
+          <h3>about:blank mode</h3>
+          <p class="desc" style="margin:0 0 12px">Opens lunora inside a blank page with no visible URL — the stealthiest option.</p>
+          <button class="vbtn acc" id="ck-ab">launch lunora in about:blank</button>
+        </div>
+      </section>
+
+      <!-- ============ panic ============ -->
+      <section class="sec" data-s="panic">
+        <h2>Panic Key</h2>
+        <p class="desc">One keypress and lunora is gone — the tab redirects to any URL you choose. Fast exits, no questions.</p>
+        <div class="panel">
+          <div class="row" style="margin:0 0 14px">
+            <div class="lbl"><b>Enable panic key</b><span>works anywhere in lunora (outside game frames)</span></div>
+            <div class="vswitch" id="pk-on"></div>
+          </div>
+          <div class="row">
+            <div class="lbl"><b>Trigger key</b><span>click the key, then press whatever you want — ` or - are good picks</span></div>
+            <div class="keycap" id="pk-key">`</div>
+          </div>
+          <div class="row"><div class="lbl"><b>Panic URL</b><span>where the tab goes when you panic</span></div></div>
+          <input class="vinput" id="pk-url" placeholder="https://classroom.google.com/h" style="margin-bottom:10px" />
+          <div class="row">
+            <div class="lbl"><b>Open mode</b><span>same tab is fastest</span></div>
+            <select class="vinput" id="pk-mode" style="width:140px"><option value="same">same tab</option><option value="new">new tab</option></select>
+          </div>
+          <div class="row" style="margin:0">
+            <div class="lbl"><b>Show on-screen panic button</b><span>a floating ✕ in the corner, in case the key fails</span></div>
+            <div class="vswitch" id="pk-btn"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ lock screen ============ -->
+      <section class="sec" data-s="lock">
+        <h2>Lock Screen</h2>
+        <p class="desc">lunora boots to a lock screen with the time, then to your profile. Choose how much stands in your way.</p>
+        <div class="panel">
+          <div class="row" style="margin:0 0 14px">
+            <div class="lbl"><b>Require password</b><span>off = the lock screen just needs one click and you're in</span></div>
+            <div class="vswitch" id="lk-pw"></div>
+          </div>
+          <div class="row" style="margin:0">
+            <div class="lbl"><b>Lock now</b><span>jump straight back to the lock screen</span></div>
+            <button class="vbtn" id="lk-lock">🔒 lock</button>
+          </div>
+        </div>
+        <div class="panel">
+          <h3>How login works</h3>
+          <p class="desc" style="margin:0">Your lunora profile <b>is</b> your messenger account — one username and password for both. Create it on the login screen the first time; "use another account" lets friends sign into their own profiles on this device.</p>
+        </div>
+      </section>
+
+      <!-- ============ engine ============ -->
+      <section class="sec" data-s="engine">
+        <h2>Browser Engine</h2>
+        <p class="desc">lunora's built-in browser routes pages through <b>Scramjet v2</b> (default), <b>Ultraviolet</b>, or loads them <b>Directly</b>. Proxied engines need a backend — self-host with <b>node server.js</b> for everything to work out of the box.</p>
+        <div class="engcard" data-e="scramjet">
+          <div class="radio"></div>
+          <div style="flex:1">
+            <b>Scramjet <span class="pill" id="st-sj">checking…</span> <span class="mini" style="background:var(--acc-dim);color:var(--acc);border:1px solid var(--acc-line);font-size:8.5px;font-weight:900;padding:2px 6px;border-radius:5px;text-transform:uppercase">default</span></b>
+            <p>v2.0.67-alpha — the new interception-based engine from Mercury Workshop. Most advanced rewriting; alpha quality on a few sites.</p>
+          </div>
+        </div>
+        <div class="engcard" data-e="uv">
+          <div class="radio"></div>
+          <div style="flex:1">
+            <b>Ultraviolet <span class="pill" id="st-uv">checking…</span></b>
+            <p>v3.2.7 — the classic, battle-tested engine. Great compatibility, epoxy transport over wisp.</p>
+          </div>
+        </div>
+        <div class="engcard" data-e="direct">
+          <div class="radio"></div>
+          <div style="flex:1">
+            <b>Direct <span class="pill ok">always ready</span></b>
+            <p>No proxy at all — pages load as raw frames. Works for sites that allow embedding (many game hosts do); big sites like Google will refuse to frame.</p>
+          </div>
+        </div>
+        <div class="panel">
+          <h3>Backend endpoints</h3>
+          <div class="row"><div class="lbl"><b>Wisp server</b><span>used by the epoxy transport (scramjet + ultraviolet)</span></div></div>
+          <input class="vinput" id="eng-wisp" placeholder="wss://your-host/wisp/" style="margin-bottom:12px" />
+          <div class="row"><div class="lbl"><b>Bare server</b><span>ultraviolet fallback endpoint</span></div></div>
+          <input class="vinput" id="eng-bare" placeholder="/bare/" style="margin-bottom:12px" />
+          <div style="display:flex;gap:8px">
+            <button class="vbtn acc" id="eng-save">save endpoints</button>
+            <button class="vbtn" id="eng-check">re-check status</button>
+          </div>
+          <p class="desc" style="margin:12px 0 0">Defaults are automatic: when you run <b>node server.js</b>, wisp and bare are served by the same server you're on.</p>
+        </div>
+      </section>
+
+      <!-- ============ data ============ -->
+      <section class="sec" data-s="data">
+        <h2>Data</h2>
+        <p class="desc">Everything lives on this device. Export a backup, move it somewhere else, or nuke it all.</p>
+        <div class="panel">
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button class="vbtn" id="d-export">⬇ export my data</button>
+            <button class="vbtn" id="d-import">⬆ import backup</button>
+            <button class="vbtn danger" id="d-reset">reset everything</button>
+            <input type="file" id="d-file" accept="application/json" hidden />
+          </div>
+          <p class="desc" id="d-note" style="margin:12px 0 0">Note: imported wallpapers / avatars / chat media are stored as blobs and aren't included in the JSON export.</p>
+        </div>
+      </section>
+
+      <!-- ============ about ============ -->
+      <section class="sec" data-s="about">
+        <h2>About</h2>
+        <div class="aboutlogo">
+          <div class="lgo">v</div>
+          <div>
+            <h2 style="margin:0" class="wordmark sm">lunora</h2>
+            <div class="dimtxt" id="ab-ver">v1.0.0</div>
+          </div>
+        </div>
+        <div class="panel">
+          <h3>Motto</h3>
+          <p style="margin:0;font-size:15px;font-weight:800;color:var(--acc)">"For MISD X AISD students by MISD X AISD students"</p>
+        </div>
+        <div class="panel">
+          <h3>Tips</h3>
+          <p class="desc" style="margin:0">
+            • <b>Ctrl + K</b> opens the spotlight anywhere on the desktop<br>
+            • right-click the desktop for quick actions<br>
+            • the messenger bot (@lunora) knows all the features<br>
+            • drag window headers to move, double-click to maximize
+          </p>
+        </div>
+        <div class="panel credits">
+          <h3 style="font-size:13.5px;font-weight:800;color:var(--text)">Credits</h3>
+          Scramjet © Mercury Workshop (AGPL-3.0) · Ultraviolet © Titanium Network (GPL-3.0) · bare-mux & epoxy © Mercury Workshop<br>
+          Game library via the GGR community scrape · LuminSDK · DuckDuckGo search · AI by Pollinations<br>
+          lunora is a student project. we host nothing — everything is embedded or proxied.
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="shared.js"></script>
+  <script>
+    (() => {
+      'use strict';
+      const $ = (s, r = document) => r.querySelector(s);
+      const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+      const V = window.Velora;
+      const S = V.getSettings();
+
+      /* ---------- navigation ---------- */
+      function show(sec) {
+        $$('.sec').forEach((x) => x.classList.toggle('on', x.dataset.s === sec));
+        $$('.navitem').forEach((x) => x.classList.toggle('on', x.dataset.s === sec));
+      }
+      $$('.navitem').forEach((n) => n.addEventListener('click', () => show(n.dataset.s)));
+      const sp = new URLSearchParams(location.search);
+      if (sp.get('section')) show(sp.get('section'));
+
+      /* ================= appearance ================= */
+      function markWall() {
+        const w = V.getSettings().wallpaper;
+        $$('#wgrid .wcard').forEach((c) => c.classList.toggle('on', c.dataset.w === w.type));
+      }
+      $$('#wgrid .wcard').forEach((c) => c.addEventListener('click', () => {
+        V.patchSettings('wallpaper', { ...V.getSettings().wallpaper, type: c.dataset.w, value: '' });
+        markWall(); V.toast('wallpaper updated');
+      }));
+
+      $('#pick-img').addEventListener('click', () => $('#file-img').click());
+      $('#pick-vid').addEventListener('click', () => $('#file-vid').click());
+      $('#file-img').addEventListener('change', async (e) => {
+        const f = e.target.files[0]; if (!f) return;
+        if (f.size > 30 * 1048576) return V.toast('image too big (max 30MB)');
+        await V.files.put('wall-image', f);
+        V.patchSettings('wallpaper', { ...V.getSettings().wallpaper, type: 'image', value: 'wall-image' });
+        markWall(); V.toast('image wallpaper set 🖼');
+      });
+      $('#file-vid').addEventListener('change', async (e) => {
+        const f = e.target.files[0]; if (!f) return;
+        if (f.size > 80 * 1048576) return V.toast('video too big (max 80MB)');
+        await V.files.put('wall-video', f);
+        V.patchSettings('wallpaper', { ...V.getSettings().wallpaper, type: 'video', value: 'wall-video' });
+        markWall(); V.toast('live wallpaper set 🎬');
+      });
+      $('#wall-url-go').addEventListener('click', () => {
+        const u = $('#wall-url').value.trim();
+        if (!u) return;
+        V.patchSettings('wallpaper', { ...V.getSettings().wallpaper, type: 'url', value: u });
+        markWall(); V.toast('url wallpaper set');
+      });
+
+      const w = V.getSettings().wallpaper;
+      $('#w-dim').value = Math.round((w.dim ?? 0.32) * 100);
+      $('#w-blur').value = w.blur || 0;
+      $('#w-dim').addEventListener('input', (e) => V.patchSettings('wallpaper', { ...V.getSettings().wallpaper, dim: e.target.value / 100 }, false));
+      $('#w-dim').addEventListener('change', () => V.tellShell({ type: 'settingsChanged' }));
+      $('#w-blur').addEventListener('input', (e) => V.patchSettings('wallpaper', { ...V.getSettings().wallpaper, blur: +e.target.value }, false));
+      $('#w-blur').addEventListener('change', () => V.tellShell({ type: 'settingsChanged' }));
+
+      const ACCENTS = [['mint', '#7ef0c0'], ['violet', '#b99cff'], ['pink', '#ff9ede'], ['amber', '#ffce7a'], ['cyan', '#7ad8ff'], ['red', '#ff8d86']];
+      const sws = $('#swatches');
+      for (const [id, color] of ACCENTS) {
+        const d = document.createElement('div');
+        d.className = 'sw' + ((V.getSettings().accent || 'mint') === id ? ' on' : '');
+        d.style.background = color; d.title = id;
+        d.addEventListener('click', () => {
+          V.patchSettings('accent', id);
+          $$('.sw').forEach((x) => x.classList.remove('on'));
+          d.classList.add('on');
+        });
+        sws.appendChild(d);
+      }
+
+      /* ================= cloak ================= */
+      const grid = $('#cloakgrid');
+      for (const c of V.CLOAKS) {
+        const d = document.createElement('div');
+        d.className = 'ccard' + (V.getSettings().cloak.preset === c.id ? ' on' : '');
+        d.innerHTML = `<img src="${V.esc(c.icon)}" onerror="this.style.visibility='hidden'"><b>${V.esc(c.name)}</b>`;
+        d.addEventListener('click', () => {
+          V.patchSettings('cloak', { ...V.getSettings().cloak, preset: c.id, title: '', icon: '' });
+          V.applyCloak(c.title, c.icon);
+          $$('.ccard').forEach((x) => x.classList.remove('on'));
+          d.classList.add('on');
+          V.toast('cloaked as ' + c.name);
+        });
+        grid.appendChild(d);
+      }
+      $('#cloak-off').addEventListener('click', () => {
+        V.patchSettings('cloak', { ...V.getSettings().cloak, preset: '', title: '', icon: '' });
+        location.reload();
+      });
+      $('#ck-title').value = V.getSettings().cloak.title || '';
+      $('#ck-icon').value = V.getSettings().cloak.icon || '';
+      $('#ck-apply').addEventListener('click', () => {
+        V.patchSettings('cloak', { ...V.getSettings().cloak, preset: '', title: $('#ck-title').value.trim(), icon: $('#ck-icon').value.trim() });
+        V.applyCloakFromSettings();
+        V.toast('custom cloak applied');
+      });
+      $('#ck-auto').classList.toggle('on', !!V.getSettings().cloak.auto);
+      $('#ck-auto').addEventListener('click', () => {
+        const on = !V.getSettings().cloak.auto;
+        V.patchSettings('cloak', { ...V.getSettings().cloak, auto: on });
+        $('#ck-auto').classList.toggle('on', on);
+      });
+      $('#ck-ab').addEventListener('click', () => {
+        const win = window.open('about:blank', '_blank');
+        if (!win) return V.toast('popup blocked — allow popups first!');
+        win.document.write(`<!doctype html><html><head><title>${document.title.replace(/</g, '')}</title><link rel="icon" href="https://www.google.com/favicon.ico"></head><body style="margin:0;overflow:hidden"><iframe src="${location.origin}" style="border:0;width:100vw;height:100vh"></iframe></body></html>`);
+        win.document.close();
+      });
+
+      /* ================= panic ================= */
+      const pk = V.getSettings().panic;
+      $('#pk-on').classList.toggle('on', !!pk.on);
+      $('#pk-key').textContent = V.keyLabel(pk.key) || '—';
+      $('#pk-url').value = pk.url || '';
+      $('#pk-mode').value = pk.mode || 'same';
+      $('#pk-btn').classList.toggle('on', !!pk.showBtn);
+
+      $('#pk-on').addEventListener('click', () => {
+        const on = !V.getSettings().panic.on;
+        V.patchSettings('panic', { ...V.getSettings().panic, on });
+        $('#pk-on').classList.toggle('on', on);
+        V.toast(on ? 'panic key armed' : 'panic key disabled');
+      });
+      $('#pk-key').addEventListener('click', () => {
+        const cap = $('#pk-key');
+        cap.classList.add('listen'); cap.textContent = 'press...';
+        const h = (e) => {
+          e.preventDefault(); e.stopPropagation();
+          let key = e.key;
+          if (e.ctrlKey || e.metaKey || e.altKey) key = (e.ctrlKey ? 'Control+' : '') + (e.altKey ? 'Alt+' : '') + e.key;
+          if (['Shift', 'Control', 'Alt', 'Meta'].includes(e.key)) return;
+          V.patchSettings('panic', { ...V.getSettings().panic, key });
+          cap.textContent = V.keyLabel(key);
+          cap.classList.remove('listen');
+          window.removeEventListener('keydown', h, true);
+        };
+        window.addEventListener('keydown', h, true);
+      });
+      $('#pk-url').addEventListener('change', () => V.patchSettings('panic', { ...V.getSettings().panic, url: $('#pk-url').value.trim() }, false));
+      $('#pk-url').addEventListener('blur', () => V.tellShell({ type: 'settingsChanged' }));
+      $('#pk-mode').addEventListener('change', () => V.patchSettings('panic', { ...V.getSettings().panic, mode: $('#pk-mode').value }));
+      $('#pk-btn').addEventListener('click', () => {
+        const on = !V.getSettings().panic.showBtn;
+        V.patchSettings('panic', { ...V.getSettings().panic, showBtn: on });
+        $('#pk-btn').classList.toggle('on', on);
+      });
+
+      /* ================= lock screen ================= */
+      $('#lk-pw').classList.toggle('on', !!V.getSettings().os.passwordOn);
+      $('#lk-pw').addEventListener('click', () => {
+        const on = !V.getSettings().os.passwordOn;
+        V.patchSettings('os.passwordOn', on);
+        $('#lk-pw').classList.toggle('on', on);
+        V.toast(on ? 'password required at login' : 'password off — one click and you\'re in');
+      });
+      $('#lk-lock').addEventListener('click', () => V.tellShell({ type: 'lock' }));
+
+      /* ================= engine ================= */
+      function markEngine() {
+        const sel = V.getSettings().engine.selected || 'uv';
+        $$('.engcard').forEach((c) => c.classList.toggle('on', c.dataset.e === sel));
+      }
+      $$('.engcard').forEach((c) => c.addEventListener('click', async () => {
+        V.patchSettings('engine.selected', c.dataset.e);
+        markEngine();
+        const names = { scramjet: 'scramjet v2', uv: 'ultraviolet', direct: 'direct' };
+        V.toast('engine set to ' + (names[c.dataset.e] || c.dataset.e) + ' — new browser windows use it');
+      }));
+      markEngine();
+
+      $('#eng-wisp').value = V.getSettings().engine.wisp || '';
+      $('#eng-bare').value = V.getSettings().engine.bare || '';
+      $('#eng-save').addEventListener('click', () => {
+        V.patchSettings('engine', {
+          ...V.getSettings().engine,
+          wisp: $('#eng-wisp').value.trim(),
+          bare: $('#eng-bare').value.trim(),
+        });
+        V.toast('endpoints saved');
+        checkEngines();
+      });
+      $('#eng-check').addEventListener('click', checkEngines);
+
+      async function checkEngines() {
+        const uvEl = $('#st-uv'), sjEl = $('#st-sj');
+        uvEl.textContent = 'checking…'; sjEl.textContent = 'checking…';
+        uvEl.className = 'pill'; sjEl.className = 'pill';
+        const [uv, sj, bare] = await Promise.all([V.engine.uvReady(), V.engine.scramjetReady(), V.engine.bareReady()]);
+        uvEl.textContent = uv ? (bare ? 'ready' : 'files ok · bare offline') : 'unavailable';
+        uvEl.className = 'pill ' + (uv ? 'ok' : 'no');
+        sjEl.textContent = sj ? (bare ? 'ready' : 'files ok · transport?') : 'unavailable';
+        sjEl.className = 'pill ' + (sj ? 'ok' : 'no');
+      }
+      checkEngines();
+
+      /* ================= data ================= */
+      $('#d-export').addEventListener('click', () => {
+        const dump = {};
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && k.startsWith('lunora.')) dump[k] = localStorage.getItem(k);
+        }
+        const blob = new Blob([JSON.stringify({ app: 'lunora', version: V.VERSION, data: dump }, null, 2)], { type: 'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'lunora-backup.json';
+        a.click();
+        V.toast('backup downloaded');
+      });
+      $('#d-import').addEventListener('click', () => $('#d-file').click());
+      $('#d-file').addEventListener('change', async (e) => {
+        const f = e.target.files[0]; if (!f) return;
+        try {
+          const j = JSON.parse(await f.text());
+          if (j.app !== 'lunora') throw new Error('not a lunora backup');
+          for (const [k, v] of Object.entries(j.data || {})) localStorage.setItem(k, v);
+          V.toast('backup imported — reloading');
+          setTimeout(() => location.reload(), 700);
+        } catch { V.toast('invalid backup file'); }
+      });
+      $('#d-reset').addEventListener('click', async () => {
+        if (!confirm('Delete ALL lunora data on this device? (settings, account, messages, wallpapers)')) return;
+        if (!confirm('last chance — really everything?')) return;
+        const keys = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if (k && k.startsWith('lunora.')) keys.push(k);
+        }
+        keys.forEach((k) => localStorage.removeItem(k));
+        await V.files.clear();
+        location.reload();
+      });
+
+      $('#ab-ver').textContent = 'v' + V.VERSION + ' — ' + V.MOTTO;
+    })();
+  </script>
+</body>
+</html>
